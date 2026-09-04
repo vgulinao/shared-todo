@@ -1,7 +1,17 @@
-FROM node:24-alpine
+# Stage 1: install everything and build client + server
+FROM node:24-slim AS build
 WORKDIR /app
-COPY package.json ./
-COPY server ./server
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build && npm prune --omit=dev
+
+# Stage 2: runtime with production dependencies and the built output only
+FROM node:24-slim
+WORKDIR /app
 ENV NODE_ENV=production
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY package.json ./
 EXPOSE 3000
-CMD ["node", "server/index.js"]
+CMD ["node", "dist/server/index.js"]
