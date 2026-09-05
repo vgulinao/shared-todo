@@ -24,6 +24,7 @@ export class Db {
   >;
   private readonly selectItems: Statement<[string], ItemRow>;
   private readonly topLevelItem: Statement<[string, string], { ok: number }>;
+  private readonly anyChild: Statement<[string, string], { ok: number }>;
   private readonly insertItem: Statement;
   private readonly updateItem: Statement;
   private readonly moveItem: Statement;
@@ -47,6 +48,9 @@ export class Db {
     );
     this.topLevelItem = this.sqlite.prepare(
       "SELECT 1 AS ok FROM items WHERE id = ? AND list_id = ? AND parent_id IS NULL",
+    );
+    this.anyChild = this.sqlite.prepare(
+      "SELECT 1 AS ok FROM items WHERE parent_id = ? AND list_id = ? LIMIT 1",
     );
     this.insertItem = this.sqlite.prepare(
       `INSERT OR IGNORE INTO items (id, list_id, parent_id, title, description, done, cost, position)
@@ -90,49 +94,53 @@ export class Db {
     return this.topLevelItem.get(itemId, listId) !== undefined;
   }
 
+  /** True if `itemId` has at least one sub-task in the list. */
+  hasChildren(listId: string, itemId: string): boolean {
+    return this.anyChild.get(itemId, listId) !== undefined;
+  }
+
   /**
-   * Runs one already-validated operation against the list. An operation on an item that no longer
-   * exists changes nothing, by design (see specs/010). Every write is scoped to the list.
+   * Runs one already-validated operation against the list. Returns whether a row changed. Every
+   * write is scoped to the list, so an op aimed at another list's item changes nothing.
    */
-  applyOp(listId: string, op: Op): void {
+  applyOp(listId: string, op: Op): boolean {
     switch (op.kind) {
       case "createItem": {
         const { item } = op;
-        this.insertItem.run(
-          item.id,
-          listId,
-          item.parentId,
-          item.title,
-          item.description,
-          item.done ? 1 : 0,
-          item.cost,
-          item.position,
+        return (
+          this.insertItem.run(
+            item.id,
+            listId,
+            item.parentId,
+            item.title,
+            item.description,
+            item.done ? 1 : 0,
+            item.cost,
+            item.position,
+          ).changes > 0
         );
-        return;
       }
       case "updateItem": {
         const p = op.patch;
-        this.updateItem.run(
-          p.title ?? null,
-          "description" in p ? 1 : 0,
-          p.description ?? null,
-          p.done === undefined ? null : p.done ? 1 : 0,
-          "cost" in p ? 1 : 0,
-          p.cost ?? null,
-          op.id,
-          listId,
+        return (
+          this.updateItem.run(
+            p.title ?? null,
+            "description" in p ? 1 : 0,
+            p.description ?? null,
+            p.done === undefined ? null : p.done ? 1 : 0,
+            "cost" in p ? 1 : 0,
+            p.cost ?? null,
+            op.id,
+            listId,
+          ).changes > 0
         );
-        return;
       }
       case "moveItem":
-        this.moveItem.run(op.parentId, op.position, op.id, listId);
-        return;
+        return this.moveItem.run(op.parentId, op.position, op.id, listId).changes > 0;
       case "deleteItem":
-        this.deleteItem.run(op.id, listId);
-        return;
+        return this.deleteItem.run(op.id, listId).changes > 0;
       case "renameList":
-        this.renameList.run(op.title, listId);
-        return;
+        return this.renameList.run(op.title, listId).changes > 0;
     }
   }
 

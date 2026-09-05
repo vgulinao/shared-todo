@@ -188,3 +188,126 @@ describe("S2 mark done", () => {
     again.socket.close();
   });
 });
+
+describe("sub-task rules (specs/010: one level deep)", () => {
+  it("an item cannot become its own parent", async () => {
+    const { editToken } = await createList();
+    const a = uid();
+    const client = connect(editToken);
+    await client.next();
+    client.send({ ...base, opId: "op-1", kind: "createItem", item: item({ id: a, position: 1 }) });
+    await client.next();
+    client.send({ ...base, opId: "op-2", kind: "moveItem", id: a, parentId: a, position: 1 });
+    expect(await client.next()).toMatchObject({ type: "rejected", opId: "op-2" });
+    const snapshot = await client.next();
+    expect(snapshot.type).toBe("snapshot");
+    if (snapshot.type === "snapshot") expect(snapshot.items[0]?.parentId).toBeNull();
+    client.socket.close();
+  });
+
+  it("an item that has sub-tasks cannot become a sub-task", async () => {
+    const { editToken } = await createList();
+    const parent = uid();
+    const child = uid();
+    const other = uid();
+    const client = connect(editToken);
+    await client.next();
+    client.send({
+      ...base,
+      opId: "op-1",
+      kind: "createItem",
+      item: item({ id: parent, position: 1 }),
+    });
+    client.send({
+      ...base,
+      opId: "op-2",
+      kind: "createItem",
+      item: item({ id: other, position: 2 }),
+    });
+    client.send({
+      ...base,
+      opId: "op-3",
+      kind: "createItem",
+      item: item({ id: child, position: 1, parentId: parent }),
+    });
+    for (let i = 0; i < 3; i++) await client.next();
+    client.send({
+      ...base,
+      opId: "op-4",
+      kind: "moveItem",
+      id: parent,
+      parentId: other,
+      position: 1,
+    });
+    expect(await client.next()).toMatchObject({
+      type: "rejected",
+      opId: "op-4",
+      reason: "an item with sub-tasks cannot become a sub-task",
+    });
+    client.socket.close();
+  });
+});
+
+describe("ops that change nothing", () => {
+  it("a createItem whose id already exists is rejected, followed by a snapshot, and not broadcast", async () => {
+    const shared = uid();
+    const first = await createList();
+    const second = await createList();
+    const owner = connect(first.editToken);
+    await owner.next();
+    owner.send({
+      ...base,
+      opId: "op-1",
+      kind: "createItem",
+      item: item({ id: shared, position: 1 }),
+    });
+    await owner.next();
+
+    const intruder = connect(second.editToken);
+    const bystander = connect(second.editToken);
+    await intruder.next();
+    await bystander.next();
+    intruder.send({
+      ...base,
+      opId: "op-2",
+      kind: "createItem",
+      item: item({ id: shared, position: 1 }),
+    });
+    expect(await intruder.next()).toMatchObject({
+      type: "rejected",
+      opId: "op-2",
+      reason: "item id already exists",
+    });
+    expect(await intruder.next()).toMatchObject({ type: "snapshot", items: [] });
+
+    // The bystander must have heard nothing. Prove it by sending a real op and seeing it arrive first.
+    bystander.send({
+      ...base,
+      opId: "op-3",
+      kind: "createItem",
+      item: item({ id: uid(), position: 1 }),
+    });
+    expect(await bystander.next()).toMatchObject({ type: "op", op: { opId: "op-3" } });
+    for (const c of [owner, intruder, bystander]) c.socket.close();
+  });
+
+  it("an update to an item that no longer exists is acknowledged to the sender only", async () => {
+    const { editToken } = await createList();
+    const editor = connect(editToken);
+    const peer = connect(editToken);
+    await editor.next();
+    await peer.next();
+    editor.send({ ...base, opId: "op-1", kind: "updateItem", id: uid(), patch: { done: true } });
+    expect(await editor.next()).toMatchObject({ type: "op", op: { opId: "op-1" } });
+
+    peer.send({
+      ...base,
+      opId: "op-2",
+      kind: "createItem",
+      item: item({ id: uid(), position: 1 }),
+    });
+    expect(await peer.next()).toMatchObject({ type: "op", op: { opId: "op-2" } });
+    editor.socket.close();
+    peer.socket.close();
+  });
+});

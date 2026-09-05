@@ -17,7 +17,7 @@ export type ClientMessage = { type: "op"; op: Op };
 export type ServerMessage =
   | { type: "snapshot"; list: ListInfo; items: Item[] }
   | { type: "op"; op: Op }
-  | { type: "rejected"; opId: string; reason: string };
+  | { type: "rejected"; opId: string | null; reason: string };
 
 /** Trims a title. Returns null when the result is empty or too long. */
 export function normalizeTitle(raw: string): string | null {
