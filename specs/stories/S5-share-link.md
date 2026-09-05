@@ -1,6 +1,6 @@
 # S5 — Share a list via unique link
 
-Status: approved
+Status: done
 
 ## User story
 
