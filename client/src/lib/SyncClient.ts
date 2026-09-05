@@ -35,6 +35,11 @@ export class SyncClient {
     this.connect();
   }
 
+  /** Operations applied locally that the server has not acknowledged yet. */
+  get pendingCount(): number {
+    return this.pending.size;
+  }
+
   /** Applies the op locally right away and sends it. The echo from the server confirms it. */
   dispatch(op: Op): void {
     this.pending.set(op.opId, op);

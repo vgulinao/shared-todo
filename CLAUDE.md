@@ -35,7 +35,8 @@ where a requirement demands it, and write down why in `docs/decisions.md`.
   message unions. Anything a validating function can refuse returns the one `Result<T>`. Do not
   introduce a type the spec does not name unless it is private to one file. Never derive a public
   type from a function's return (`ReturnType<typeof ...>`); name the thing instead.
-- Tests live next to the code as `*.test.ts`. Name them after the story and criterion:
+- Tests live next to the code as `*.test.ts`. Integration tests that need a running server live in
+  `server/` even when the unit under test is client code (e.g. the sync engine). Name them after the story and criterion:
   `describe("S4 real-time")` → `it("AC2 an op from one client reaches the other")`.
 - Branch per story (`s4-realtime`), PR per story, commit messages `feat(S4): ...`, `fix(S4): ...`,
   `docs: ...`, `chore: ...`. Small commits.

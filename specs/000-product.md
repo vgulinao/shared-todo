@@ -15,7 +15,7 @@ There are no accounts. The link is the identity and the permission.
 | S1  | Create to-do items (required)                                | done    |
 | S2  | Mark items as done                                           | done    |
 | S3  | Items persist across server restarts                         | done    |
-| S4  | Real-time collaboration between users                        | planned |
+| S4  | Real-time collaboration between users                        | done    |
 | S5  | Share a list via unique link (view-only or edit)             | planned |
 | S6  | Reorder items via drag & drop                                | planned |
 | S7  | Sub-tasks with overall progress on the parent                | planned |
