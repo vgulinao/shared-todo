@@ -55,7 +55,7 @@ assignment. Sub-tasks are one level deep: a sub-task cannot have children.
 Server → client
 
 ```ts
-{ type: "snapshot"; list: { title: string; role: "edit" | "view" }; items: Item[] }
+{ type: "snapshot"; list: { id: string; title: string; role: "edit" | "view" }; items: Item[] }
 { type: "op"; op: Op }                 // an operation the server has applied (any client's)
 { type: "rejected"; opId: string; reason: string }
 ```

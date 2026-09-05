@@ -1,4 +1,4 @@
-import type { Item, ListInfo } from "./types.ts";
+import type { Item, ListInfo, Result } from "./types.ts";
 
 export const MAX_TITLE_LENGTH = 500;
 
@@ -26,13 +26,11 @@ export function normalizeTitle(raw: string): string | null {
   return title;
 }
 
-type ParseResult = { ok: true; op: Op } | { ok: false; reason: string };
-
 /**
  * Validates an untrusted client message. The server calls this on every frame; the client never
  * needs it because it builds ops itself.
  */
-export function parseClientMessage(raw: unknown): ParseResult {
+export function parseClientMessage(raw: unknown): Result<Op> {
   if (!isRecord(raw) || raw.type !== "op" || !isRecord(raw.op)) {
     return { ok: false, reason: "expected { type: 'op', op }" };
   }
@@ -46,13 +44,13 @@ export function parseClientMessage(raw: unknown): ParseResult {
     case "createItem": {
       const item = parseItem(op.item);
       if (!item) return { ok: false, reason: "invalid item" };
-      return { ok: true, op: { ...base, kind: "createItem", item } };
+      return { ok: true, value: { ...base, kind: "createItem", item } };
     }
     case "updateItem": {
       if (!isString(op.id)) return { ok: false, reason: "updateItem needs id" };
       const patch = parsePatch(op.patch);
       if (!patch) return { ok: false, reason: "invalid patch" };
-      return { ok: true, op: { ...base, kind: "updateItem", id: op.id, patch } };
+      return { ok: true, value: { ...base, kind: "updateItem", id: op.id, patch } };
     }
     case "moveItem": {
       if (!isString(op.id) || !isNullableString(op.parentId) || !isFinite(op.position)) {
@@ -60,17 +58,23 @@ export function parseClientMessage(raw: unknown): ParseResult {
       }
       return {
         ok: true,
-        op: { ...base, kind: "moveItem", id: op.id, parentId: op.parentId, position: op.position },
+        value: {
+          ...base,
+          kind: "moveItem",
+          id: op.id,
+          parentId: op.parentId,
+          position: op.position,
+        },
       };
     }
     case "deleteItem": {
       if (!isString(op.id)) return { ok: false, reason: "deleteItem needs id" };
-      return { ok: true, op: { ...base, kind: "deleteItem", id: op.id } };
+      return { ok: true, value: { ...base, kind: "deleteItem", id: op.id } };
     }
     case "renameList": {
       const title = isString(op.title) ? normalizeTitle(op.title) : null;
       if (title === null) return { ok: false, reason: "invalid title" };
-      return { ok: true, op: { ...base, kind: "renameList", title } };
+      return { ok: true, value: { ...base, kind: "renameList", title } };
     }
     default:
       return { ok: false, reason: "unknown op kind" };

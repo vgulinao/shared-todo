@@ -103,8 +103,8 @@ describe("protocol rules", () => {
       op: { ...base, kind: "createItem", item: item({ id: "a", title: "  eggs " }) },
     });
     expect(result.ok).toBe(true);
-    if (result.ok && result.op.kind === "createItem") {
-      expect(result.op.item.title).toBe("eggs");
+    if (result.ok && result.value.kind === "createItem") {
+      expect(result.value.item.title).toBe("eggs");
     }
   });
 
