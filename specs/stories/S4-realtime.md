@@ -1,6 +1,6 @@
 # S4 — Real-time collaboration
 
-Status: approved
+Status: done
 
 ## User story
 
