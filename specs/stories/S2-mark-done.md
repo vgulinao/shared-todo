@@ -1,6 +1,6 @@
 # S2 — Mark items as done
 
-Status: approved
+Status: done
 
 ## User story
 

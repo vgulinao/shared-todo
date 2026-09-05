@@ -13,7 +13,7 @@ There are no accounts. The link is the identity and the permission.
 | ID  | Story                                                        | Status  |
 | --- | ------------------------------------------------------------ | ------- |
 | S1  | Create to-do items (required)                                | done    |
-| S2  | Mark items as done                                           | planned |
+| S2  | Mark items as done                                           | done    |
 | S3  | Items persist across server restarts                         | planned |
 | S4  | Real-time collaboration between users                        | planned |
 | S5  | Share a list via unique link (view-only or edit)             | planned |
