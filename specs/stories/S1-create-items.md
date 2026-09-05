@@ -1,6 +1,6 @@
 # S1 — Create to-do items
 
-Status: approved
+Status: done
 
 ## User story
 

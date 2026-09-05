@@ -81,9 +81,11 @@ static serving and routing for no benefit).
 ## D9 — No state-management or routing library on the client
 
 **Context.** The client has two routes (home, `/l/:token`) and one piece of state (the list).
-**Decision.** `useReducer` around the shared `apply` function, one `useList` hook that owns the
-socket, and a few lines of `history.pushState` for routing.
-**Not chosen.** Redux / Zustand / React Query, React Router.
+**Decision.** One `SyncClient` class owns the socket, the pending queue, and the list state, and
+calls back with the new state on every change. One `useList` hook creates it for the lifetime of the
+page and puts the state in React with `useState`. Routing is a `usePath` hook over `history.pushState`.
+**Not chosen.** Redux / Zustand / React Query, React Router, a `useReducer` inside React (the
+reconnect-and-replay logic has to run whether or not React is rendering, so it lives in the class).
 **Cost.** If the app grew more routes or unrelated state, a router would be the first thing to add.
 
 ## D10 — One server instance, no horizontal scaling

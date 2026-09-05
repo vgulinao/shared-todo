@@ -28,7 +28,13 @@ where a requirement demands it, and write down why in `docs/decisions.md`.
 
 - Relative imports use the `.ts` extension (`import { x } from "../shared/protocol.ts"`).
 - No enums, namespaces, or parameter properties (`erasableSyntaxOnly`). Use `const` objects and unions.
-- Functions over classes unless state and behaviour genuinely belong together.
+- Functions by default. A class only when an object owns state that lives across calls and has a
+  lifecycle (a connection, a socket, a queue): `Db`, the client sync engine. Data that travels as
+  JSON stays a plain object, never a class.
+- Named types are the spec's nouns and nothing else: `Item`, `Op`, `ListInfo`, `Role`, the two
+  message unions. Anything a validating function can refuse returns the one `Result<T>`. Do not
+  introduce a type the spec does not name unless it is private to one file. Never derive a public
+  type from a function's return (`ReturnType<typeof ...>`); name the thing instead.
 - Tests live next to the code as `*.test.ts`. Name them after the story and criterion:
   `describe("S4 real-time")` → `it("AC2 an op from one client reaches the other")`.
 - Branch per story (`s4-realtime`), PR per story, commit messages `feat(S4): ...`, `fix(S4): ...`,
