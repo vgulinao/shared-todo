@@ -43,7 +43,9 @@ assignment. Sub-tasks are one level deep: a sub-task cannot have children.
   `edit` if it matches `edit_token`, `view` if it matches `view_token`, otherwise 404.
 - The server rejects write operations on a `view` connection. The client also hides editing
   controls, but the server check is the one that matters.
-- Tokens are 128-bit random, URL-safe. Knowing the view token does not reveal the edit token.
+- Tokens are 128-bit random, URL-safe. Knowing the view token does not reveal the edit token. The
+  snapshot carries the view token for edit-role connections only (so they can share a view link) and
+  never carries the edit token.
 
 ## Transport
 
@@ -55,7 +57,7 @@ assignment. Sub-tasks are one level deep: a sub-task cannot have children.
 Server → client
 
 ```ts
-{ type: "snapshot"; list: { id: string; title: string; role: "edit" | "view" }; items: Item[] }
+{ type: "snapshot"; list: { id: string; title: string; role: "edit" | "view"; viewToken: string | null }; items: Item[] }
 { type: "op"; op: Op }                 // an operation the server has applied (any client's)
 { type: "rejected"; opId: string | null; reason: string } // followed by a snapshot when opId is known
 ```

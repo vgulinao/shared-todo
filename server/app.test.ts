@@ -36,7 +36,12 @@ describe("S1 create items", () => {
     const client = connect(editToken);
     expect(await client.next()).toEqual({
       type: "snapshot",
-      list: { id: expect.any(String), title: "Untitled list", role: "edit" },
+      list: {
+        id: expect.any(String),
+        title: "Untitled list",
+        role: "edit",
+        viewToken: expect.any(String),
+      },
       items: [],
     });
     client.socket.close();
@@ -309,5 +314,80 @@ describe("ops that change nothing", () => {
     expect(await peer.next()).toMatchObject({ type: "op", op: { opId: "op-2" } });
     editor.socket.close();
     peer.socket.close();
+  });
+});
+
+describe("S5 share link", () => {
+  it("AC4 the view token is sent to edit-role connections only; the edit token never", async () => {
+    const { editToken, viewToken } = await createList();
+    const editor = connect(editToken);
+    const viewer = connect(viewToken);
+    const editorSnapshot = await editor.next();
+    const viewerSnapshot = await viewer.next();
+    expect(editorSnapshot).toMatchObject({ type: "snapshot", list: { role: "edit", viewToken } });
+    expect(viewerSnapshot).toMatchObject({
+      type: "snapshot",
+      list: { role: "view", viewToken: null },
+    });
+    expect(JSON.stringify(editorSnapshot)).not.toContain(editToken);
+    expect(JSON.stringify(viewerSnapshot)).not.toContain(editToken);
+    editor.socket.close();
+    viewer.socket.close();
+  });
+
+  it("AC3 an op from a view-role socket is rejected, followed by a snapshot, and not broadcast", async () => {
+    const { editToken, viewToken } = await createList();
+    const editor = connect(editToken);
+    const viewer = connect(viewToken);
+    await editor.next();
+    await viewer.next();
+
+    viewer.send({
+      ...base,
+      opId: "op-1",
+      kind: "createItem",
+      item: item({ id: uid(), position: 1 }),
+    });
+    expect(await viewer.next()).toMatchObject({
+      type: "rejected",
+      opId: "op-1",
+      reason: "read-only link",
+    });
+    expect(await viewer.next()).toMatchObject({ type: "snapshot", items: [] });
+
+    // The editor heard nothing: its own next op is the first message it receives.
+    editor.send({
+      ...base,
+      opId: "op-2",
+      kind: "createItem",
+      item: item({ id: uid(), position: 1 }),
+    });
+    expect(await editor.next()).toMatchObject({ type: "op", op: { opId: "op-2" } });
+    editor.socket.close();
+    viewer.socket.close();
+  });
+
+  it("AC5 renameList reaches peers and survives a reconnect", async () => {
+    const { editToken, viewToken } = await createList();
+    const editor = connect(editToken);
+    const viewer = connect(viewToken);
+    await editor.next();
+    await viewer.next();
+
+    editor.send({ ...base, opId: "op-1", kind: "renameList", title: "  Family groceries " });
+    expect(await viewer.next()).toMatchObject({
+      type: "op",
+      op: { kind: "renameList", title: "Family groceries" },
+    });
+    await editor.next();
+    editor.socket.close();
+    viewer.socket.close();
+
+    const again = connect(viewToken);
+    expect(await again.next()).toMatchObject({
+      type: "snapshot",
+      list: { title: "Family groceries" },
+    });
+    again.socket.close();
   });
 });

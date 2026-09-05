@@ -47,7 +47,12 @@ describe("S3 persistence", () => {
     const snapshot = await reader.next();
     expect(snapshot).toEqual({
       type: "snapshot",
-      list: { id: expect.any(String), title: "Groceries", role: "edit" },
+      list: {
+        id: expect.any(String),
+        title: "Groceries",
+        role: "edit",
+        viewToken: expect.any(String),
+      },
       items: [item({ id: a, position: 1, done: true }), item({ id: b, position: 2 })],
     });
     reader.socket.close();

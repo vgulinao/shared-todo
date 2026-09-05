@@ -219,3 +219,30 @@ describe("S4 real-time collaboration", () => {
     expect(a.state.error).toBeNull();
   });
 });
+
+describe("S5 share link (client engine)", () => {
+  it("AC5 a list rename shows up live on every client", async () => {
+    const { a, b } = await twoClients();
+    a.dispatch({ ...stamp(), kind: "renameList", title: "Weekend trip" });
+    expect(a.state.list?.title).toBe("Weekend trip"); // optimistic
+    await until(() => b.state.list?.title === "Weekend trip", "B sees the new title");
+  });
+
+  it("AC3 a viewer's optimistic change is undone by the snapshot that follows the rejection", async () => {
+    const { editToken, viewToken } = await createList(server!.app);
+    const editor = connect(editToken);
+    const viewer = connect(viewToken);
+    await until(() => editor.state.list !== null && viewer.state.list !== null, "both connected");
+
+    const id = uid();
+    viewer.dispatch(createOp(id, "sneaky", 1));
+    expect(viewer.state.items.has(id)).toBe(true); // optimistic, as for any client
+    expect(viewer.pendingCount).toBe(1);
+
+    await until(() => viewer.state.error === "read-only link", "rejected");
+    await until(() => !viewer.state.items.has(id), "snapshot removed it");
+    // The op must have left the queue before the snapshot, or the replay would re-apply it.
+    expect(viewer.pendingCount).toBe(0);
+    expect(editor.state.items.size).toBe(0);
+  });
+});
