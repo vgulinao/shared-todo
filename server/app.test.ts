@@ -1,78 +1,30 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { randomUUID } from "node:crypto";
 import { WebSocket } from "ws";
-import type { Op, ServerMessage } from "../shared/protocol.ts";
-import type { Item } from "../shared/types.ts";
+import type { Op } from "../shared/protocol.ts";
 import { buildApp } from "./app.ts";
 import { Db } from "./db.ts";
+import {
+  base,
+  connect as connectTo,
+  createList as createListOn,
+  item,
+  listen,
+  uid,
+  type App,
+} from "./test-helpers.ts";
 
-let app: Awaited<ReturnType<typeof buildApp>>;
+let app: App;
 let baseUrl: string;
 
 beforeAll(async () => {
   app = await buildApp(new Db(":memory:"));
-  await app.listen({ port: 0, host: "127.0.0.1" });
-  const address = app.server.address();
-  if (!address || typeof address === "string") throw new Error("no port");
-  baseUrl = `127.0.0.1:${address.port}`;
+  baseUrl = await listen(app);
 });
 
 afterAll(() => app.close());
 
-async function createList(title?: string) {
-  const res = await app.inject({
-    method: "POST",
-    url: "/api/lists",
-    payload: title ? { title } : {},
-  });
-  expect(res.statusCode).toBe(201);
-  return res.json() as { editToken: string; viewToken: string };
-}
-
-/** Opens a socket and returns helpers that resolve with the next message or close event. */
-function connect(token: string) {
-  const socket = new WebSocket(`ws://${baseUrl}/ws?token=${token}`);
-  const inbox: ServerMessage[] = [];
-  const waiting: Array<(m: ServerMessage) => void> = [];
-  socket.on("message", (data) => {
-    const message = JSON.parse(data.toString()) as ServerMessage;
-    const waiter = waiting.shift();
-    if (waiter) waiter(message);
-    else inbox.push(message);
-  });
-  return {
-    socket,
-    next(): Promise<ServerMessage> {
-      const queued = inbox.shift();
-      if (queued) return Promise.resolve(queued);
-      return new Promise((resolve) => waiting.push(resolve));
-    },
-    send(op: Op) {
-      socket.send(JSON.stringify({ type: "op", op }));
-    },
-    closed(): Promise<number> {
-      return new Promise((resolve) => socket.on("close", (code) => resolve(code)));
-    },
-  };
-}
-
-function item(overrides: Partial<Item> & { id: string; position: number }): Item {
-  return {
-    parentId: null,
-    title: overrides.id,
-    description: null,
-    done: false,
-    cost: null,
-    ...overrides,
-  };
-}
-
-const base = { clientId: "client-a" };
-
-/** Item ids are unique across all lists, like the UUIDs the client generates. */
-function uid(): string {
-  return randomUUID();
-}
+const createList = (title?: string) => createListOn(app, title);
+const connect = (token: string) => connectTo(baseUrl, token);
 
 describe("S1 create items", () => {
   it("AC1 POST /api/lists creates a list with two distinct tokens and an empty snapshot", async () => {
