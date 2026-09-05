@@ -1,6 +1,6 @@
 # S3 — Items persist across server restarts
 
-Status: approved
+Status: done
 
 ## User story
 
