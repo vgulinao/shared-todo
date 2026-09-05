@@ -40,3 +40,7 @@ export function updateItem(id: string, patch: ItemPatch): Op {
 export function deleteItem(id: string): Op {
   return { ...stamp(), kind: "deleteItem", id };
 }
+
+export function renameList(title: string): Op {
+  return { ...stamp(), kind: "renameList", title };
+}

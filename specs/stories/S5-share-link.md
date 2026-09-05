@@ -19,8 +19,8 @@ which by choosing which link to send.
   rejects it, nothing is persisted or broadcast, and the client's state is corrected by the snapshot
   that follows the rejection.
 - **AC4** Given the view link, the edit link cannot be derived from anything the client receives.
-  The server never sends the edit token over the socket; the view token is sent only to edit-role
-  connections.
+  The server never sends the edit token over the socket to anyone; the view token is sent only to
+  edit-role connections (a viewer already has it in the URL).
 - **AC5** Given I hold the edit link, when I click the list title, then I can rename it. Enter
   saves, Escape cancels, empty keeps the old title. The new title appears for everyone live and
   survives a reload.

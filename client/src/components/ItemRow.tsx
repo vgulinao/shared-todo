@@ -4,12 +4,13 @@ import type { Item } from "../../../shared/types.ts";
 
 type Props = {
   item: Item;
+  editable: boolean;
   onToggleDone: (done: boolean) => void;
   onRename: (title: string) => void;
   onDelete: () => void;
 };
 
-export function ItemRow({ item, onToggleDone, onRename, onDelete }: Props) {
+export function ItemRow({ item, editable, onToggleDone, onRename, onDelete }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
 
   function save() {
@@ -24,10 +25,13 @@ export function ItemRow({ item, onToggleDone, onRename, onDelete }: Props) {
         type="checkbox"
         className="item-check"
         checked={item.done}
+        disabled={!editable}
         aria-label={`Mark ${item.title} as ${item.done ? "not done" : "done"}`}
         onChange={(e) => onToggleDone(e.target.checked)}
       />
-      {draft === null ? (
+      {!editable ? (
+        <span className="item-title">{item.title}</span>
+      ) : draft === null ? (
         <button className="item-title" onClick={() => setDraft(item.title)}>
           {item.title}
         </button>
@@ -44,9 +48,11 @@ export function ItemRow({ item, onToggleDone, onRename, onDelete }: Props) {
           }}
         />
       )}
-      <button className="item-delete" aria-label={`Delete ${item.title}`} onClick={onDelete}>
-        ×
-      </button>
+      {editable && (
+        <button className="item-delete" aria-label={`Delete ${item.title}`} onClick={onDelete}>
+          ×
+        </button>
+      )}
     </li>
   );
 }

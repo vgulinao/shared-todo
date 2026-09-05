@@ -20,7 +20,7 @@ export class Db {
   private readonly insertList: Statement;
   private readonly findByToken: Statement<
     [string, string],
-    { id: string; title: string; edit_token: string }
+    { id: string; title: string; edit_token: string; view_token: string }
   >;
   private readonly selectItems: Statement<[string], ItemRow>;
   private readonly topLevelItem: Statement<[string, string], { ok: number }>;
@@ -41,7 +41,7 @@ export class Db {
       "INSERT INTO lists (id, title, edit_token, view_token) VALUES (?, ?, ?, ?)",
     );
     this.findByToken = this.sqlite.prepare(
-      "SELECT id, title, edit_token FROM lists WHERE edit_token = ? OR view_token = ?",
+      "SELECT id, title, edit_token, view_token FROM lists WHERE edit_token = ? OR view_token = ?",
     );
     this.selectItems = this.sqlite.prepare(
       "SELECT id, parent_id, title, description, done, cost, position FROM items WHERE list_id = ? ORDER BY position",
@@ -82,7 +82,13 @@ export class Db {
   findListByToken(token: string): ListInfo | null {
     const row = this.findByToken.get(token, token);
     if (!row) return null;
-    return { id: row.id, title: row.title, role: row.edit_token === token ? "edit" : "view" };
+    const role = row.edit_token === token ? "edit" : "view";
+    return {
+      id: row.id,
+      title: row.title,
+      role,
+      viewToken: role === "edit" ? row.view_token : null,
+    };
   }
 
   listItems(listId: string): Item[] {

@@ -134,7 +134,7 @@ input {
   padding: 0.15rem 0.25rem;
   border-radius: 4px;
 }
-.item-title:hover {
+button.item-title:hover {
   background: var(--color-bg);
 }
 
@@ -202,4 +202,84 @@ input {
 .chevron {
   display: inline-block;
   width: 1em;
+}
+
+.secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+.secondary:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.share-toggle {
+  margin-left: auto;
+}
+
+.title-button {
+  text-align: left;
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  margin-left: -0.3rem;
+}
+.title-button:hover {
+  background: var(--color-surface);
+}
+
+.title-edit {
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 0.1rem 0.3rem;
+  margin-left: -0.3rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  outline: none;
+  flex: 1;
+}
+
+.share {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.share-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.share-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.share-url {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.item-check:disabled {
+  cursor: default;
+}
+
+span.item-title {
+  padding: 0.15rem 0.25rem;
 }
