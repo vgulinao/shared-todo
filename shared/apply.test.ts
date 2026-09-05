@@ -126,3 +126,15 @@ describe("protocol rules", () => {
     );
   });
 });
+
+describe("S2 mark done", () => {
+  it("AC1/AC2 toggling done never touches the position", () => {
+    const items = itemsOf(item({ id: "a", position: 1 }), item({ id: "b", position: 2 }));
+    const done = apply(items, { ...base, kind: "updateItem", id: "a", patch: { done: true } });
+    expect(done.get("a")).toMatchObject({ done: true, position: 1 });
+    expect(childrenOf(done, null).map((i) => i.id)).toEqual(["a", "b"]);
+
+    const undone = apply(done, { ...base, kind: "updateItem", id: "a", patch: { done: false } });
+    expect(undone.get("a")).toEqual(items.get("a"));
+  });
+});

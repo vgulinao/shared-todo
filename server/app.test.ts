@@ -215,3 +215,24 @@ describe("protocol rules", () => {
     client.socket.close();
   });
 });
+
+describe("S2 mark done", () => {
+  it("AC5 done state is persisted and comes back in the snapshot", async () => {
+    const { editToken } = await createList();
+    const a = uid();
+    const client = connect(editToken);
+    await client.next();
+    client.send({ ...base, opId: "op-1", kind: "createItem", item: item({ id: a, position: 1 }) });
+    client.send({ ...base, opId: "op-2", kind: "updateItem", id: a, patch: { done: true } });
+    await client.next();
+    await client.next();
+    client.socket.close();
+
+    const again = connect(editToken);
+    const snapshot = await again.next();
+    if (snapshot.type === "snapshot") {
+      expect(snapshot.items).toEqual([item({ id: a, position: 1, done: true })]);
+    }
+    again.socket.close();
+  });
+});

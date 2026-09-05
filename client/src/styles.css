@@ -167,3 +167,39 @@ input {
   text-align: center;
   padding: 2rem 0;
 }
+
+.item-check {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.item.done .item-title {
+  text-decoration: line-through;
+  color: var(--color-muted);
+}
+
+.completed {
+  margin-top: 1rem;
+}
+
+.completed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  padding: 0.4rem 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.completed-toggle:hover {
+  color: var(--color-text);
+}
+
+.chevron {
+  display: inline-block;
+  width: 1em;
+}

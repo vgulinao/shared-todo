@@ -4,11 +4,12 @@ import type { Item } from "../../../shared/types.ts";
 
 type Props = {
   item: Item;
+  onToggleDone: (done: boolean) => void;
   onRename: (title: string) => void;
   onDelete: () => void;
 };
 
-export function ItemRow({ item, onRename, onDelete }: Props) {
+export function ItemRow({ item, onToggleDone, onRename, onDelete }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
 
   function save() {
@@ -18,7 +19,14 @@ export function ItemRow({ item, onRename, onDelete }: Props) {
   }
 
   return (
-    <li className="item">
+    <li className={item.done ? "item done" : "item"}>
+      <input
+        type="checkbox"
+        className="item-check"
+        checked={item.done}
+        aria-label={`Mark ${item.title} as ${item.done ? "not done" : "done"}`}
+        onChange={(e) => onToggleDone(e.target.checked)}
+      />
       {draft === null ? (
         <button className="item-title" onClick={() => setDraft(item.title)}>
           {item.title}
