@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { childrenOf } from "../../../shared/apply.ts";
+import type { Item } from "../../../shared/types.ts";
 import { useList } from "../lib/useList.ts";
 import { createItem, deleteItem, updateItem } from "../lib/ops.ts";
 import { AddItem } from "../components/AddItem.tsx";
@@ -7,6 +9,7 @@ import { NotFound } from "./NotFound.tsx";
 
 export function ListPage({ token }: { token: string }) {
   const { state, dispatch } = useList(token);
+  const [showDone, setShowDone] = useState(false);
 
   if (state.status === "not-found") return <NotFound />;
   if (!state.list) {
@@ -18,6 +21,18 @@ export function ListPage({ token }: { token: string }) {
   }
 
   const items = childrenOf(state.items, null);
+  const pending = items.filter((item) => !item.done);
+  const done = items.filter((item) => item.done);
+
+  const row = (item: Item) => (
+    <ItemRow
+      key={item.id}
+      item={item}
+      onToggleDone={(value) => dispatch(updateItem(item.id, { done: value }))}
+      onRename={(title) => dispatch(updateItem(item.id, { title }))}
+      onDelete={() => dispatch(deleteItem(item.id))}
+    />
+  );
 
   return (
     <main className="app">
@@ -31,16 +46,22 @@ export function ListPage({ token }: { token: string }) {
       {items.length === 0 ? (
         <p className="muted empty">Nothing here yet. Add your first item above.</p>
       ) : (
-        <ul className="items">
-          {items.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              onRename={(title) => dispatch(updateItem(item.id, { title }))}
-              onDelete={() => dispatch(deleteItem(item.id))}
-            />
-          ))}
-        </ul>
+        <>
+          {pending.length > 0 && <ul className="items">{pending.map(row)}</ul>}
+          {done.length > 0 && (
+            <section className="completed">
+              <button
+                className="completed-toggle"
+                aria-expanded={showDone}
+                onClick={() => setShowDone((v) => !v)}
+              >
+                <span className="chevron">{showDone ? "▾" : "▸"}</span>
+                Completed · {done.length}
+              </button>
+              {showDone && <ul className="items">{done.map(row)}</ul>}
+            </section>
+          )}
+        </>
       )}
 
       {state.error && <p className="error">{state.error}</p>}
