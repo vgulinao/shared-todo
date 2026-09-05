@@ -47,12 +47,12 @@ across page reloads (S10), read-only participants (S5).
 
 Tests drive the real `SyncClient` (Node 24 has a global `WebSocket`) against an in-process server.
 
-| AC  | Test                                                                                                                                               | Where  |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| AC1 | A dispatches create/update/delete; B's state reflects each                                                                                         | server |
-| AC2 | A's state has the item synchronously after dispatch; after the echo it still has exactly one                                                       | server |
-| AC3 | Stop the server, A dispatches while offline (status "offline"), restart on the same port, A resends; a fresh client sees the item; A back "online" | server |
-| AC4 | A renames, B ticks, concurrently; both end with the new title and done = true                                                                      | server |
-| AC5 | A and B rename the same item concurrently; both end with the same title                                                                            | server |
-| AC6 | A deletes, B updates the same item concurrently; both end without the item, no error state                                                         | server |
-| AC7 | Manual: several tabs on the live URL                                                                                                               | manual |
+| AC  | Test                                                                                                                                                                                                 | Where  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| AC1 | A dispatches create/update/delete; B's state reflects each                                                                                                                                           | server |
+| AC2 | A's state has the item synchronously after dispatch; the echo leaves the same items Map and triggers no state callback (no re-render)                                                                | server |
+| AC3 | Stop the server; A edits while "offline" (pending 1); restart on the same port; C connects and edits before A reconnects; A comes back "online" with pending 0, holding both edits; C holds both too | server |
+| AC4 | A renames, B ticks, concurrently; both end with the new title and done = true                                                                                                                        | server |
+| AC5 | A and B rename the same item concurrently; both end with the same title                                                                                                                              | server |
+| AC6 | A deletes, B updates the same item concurrently; both end without the item, B's pending drains to 0, no error state                                                                                  | server |
+| AC7 | Manual: several tabs on the live URL                                                                                                                                                                 | manual |
