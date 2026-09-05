@@ -1,5 +1,7 @@
-# Stage 1: install everything and build client + server
-FROM node:24-slim AS build
+# Stage 1: install everything and build client + server.
+# The full image (not -slim) carries python3/make/g++, which better-sqlite3 needs if no prebuilt
+# binary is available for this Node version. Both stages are Debian, so the binary carries over.
+FROM node:24 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
