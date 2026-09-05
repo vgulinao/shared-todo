@@ -38,7 +38,7 @@ export class SyncClient {
   /** Applies the op locally right away and sends it. The echo from the server confirms it. */
   dispatch(op: Op): void {
     this.pending.set(op.opId, op);
-    this.update({ items: apply(this.state.items, op), error: null });
+    this.update({ ...this.applied(this.state, op), error: null });
     this.sendPending([op]);
   }
 
@@ -74,21 +74,36 @@ export class SyncClient {
   private receive(message: ServerMessage): void {
     switch (message.type) {
       case "snapshot": {
-        let items: Items = new Map(message.items.map((item) => [item.id, item]));
-        for (const op of this.pending.values()) items = apply(items, op);
-        this.update({ list: message.list, items });
+        let next: Pick<ListState, "list" | "items"> = {
+          list: message.list,
+          items: new Map(message.items.map((item) => [item.id, item])),
+        };
+        for (const op of this.pending.values()) next = this.applied(next, op);
+        this.update(next);
         this.sendPending([...this.pending.values()]);
         return;
       }
       case "op":
         this.pending.delete(message.op.opId);
-        this.update({ items: apply(this.state.items, message.op) });
+        this.update(this.applied(this.state, message.op));
         return;
       case "rejected":
-        this.pending.delete(message.opId);
+        // The server follows a rejection with a snapshot, which undoes the optimistic change.
+        if (message.opId !== null) this.pending.delete(message.opId);
         this.update({ error: message.reason });
         return;
     }
+  }
+
+  /** One op applied to items, plus the list title for `renameList`, which `apply` does not cover. */
+  private applied(
+    state: Pick<ListState, "list" | "items">,
+    op: Op,
+  ): Pick<ListState, "list" | "items"> {
+    const items = apply(state.items, op);
+    const list =
+      op.kind === "renameList" && state.list ? { ...state.list, title: op.title } : state.list;
+    return { list, items };
   }
 
   private sendPending(ops: Op[]): void {
@@ -96,7 +111,10 @@ export class SyncClient {
     for (const op of ops) this.socket.send(JSON.stringify({ type: "op", op }));
   }
 
+  /** Notifies React only when something actually changed, so a no-op op costs no render. */
   private update(patch: Partial<ListState>): void {
+    const keys = Object.keys(patch) as Array<keyof ListState>;
+    if (keys.every((key) => patch[key] === this.state[key])) return;
     this.state = { ...this.state, ...patch };
     this.onChange(this.state);
   }

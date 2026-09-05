@@ -57,7 +57,7 @@ Server → client
 ```ts
 { type: "snapshot"; list: { id: string; title: string; role: "edit" | "view" }; items: Item[] }
 { type: "op"; op: Op }                 // an operation the server has applied (any client's)
-{ type: "rejected"; opId: string; reason: string }
+{ type: "rejected"; opId: string | null; reason: string } // followed by a snapshot when opId is known
 ```
 
 Client → server
@@ -96,7 +96,10 @@ Idempotency is by construction, not by bookkeeping:
 | deleteItem | `DELETE ... WHERE id = ?` (cascade)  | second is a no-op |
 | renameList | `UPDATE lists SET title`             | same result       |
 
-An op that references a missing item (deleted by someone else meanwhile) is a no-op on both sides.
+An op that references a missing item (deleted by someone else meanwhile) changes nothing. The server
+acknowledges it to the sender only (so the op leaves the pending queue) and does not broadcast it; every
+other client already saw the delete. A `createItem` that changes nothing means the id already exists and
+is rejected.
 
 ## Client algorithm
 
@@ -107,8 +110,8 @@ State: `items: Map<id, Item>`, `pending: Map<opId, Op>`, `status: "connecting" |
    Ops from other clients are applied the same way; there is no special case.
 3. **Receive `snapshot`** → replace `items` with the snapshot, then re-apply every op still in
    `pending` in insertion order, then resend them. This is the whole reconnect story.
-4. **Receive `rejected`** → remove from `pending`, show a brief error, and rely on the next
-   snapshot or op stream to correct local state (in practice only happens for `view` role).
+4. **Receive `rejected`** → remove from `pending`, show a brief error. The server always follows a
+   rejection with a snapshot, which replaces local state and so undoes the optimistic change.
 5. **Socket closes** → `status = "offline"`, reconnect with exponential backoff (0.5 s → 10 s).
 
 `apply` is a pure function in `shared/` with tests. The same function runs on every client, so all
@@ -119,8 +122,12 @@ clients that have seen the same ops in the same order hold the same state.
 1. On upgrade: resolve token → list + role, or close with 4004. Send `snapshot`. Add socket to the
    room for that list.
 2. On `op` from a `view` socket → send `rejected`, do nothing else.
-3. On `op` from an `edit` socket → validate shape → run the SQL → broadcast `{type:"op", op}` to
-   every socket in the room, sender included. The sender treats its own op coming back as the ack.
+3. On `op` from an `edit` socket → validate (shape; parent rules: parent is a top-level item of the
+   same list, an item is never its own parent, an item with sub-tasks cannot become one) → run the SQL →
+   if a row changed, broadcast `{type:"op", op}` to every socket in the room, sender included; the
+   sender treats its own op coming back as the ack. If nothing changed: a `createItem` is rejected (id
+   already exists), anything else is echoed to the sender only.
+   Every rejection is followed by a snapshot.
 4. On close: remove from the room.
 
 The server does not keep list state in memory. SQLite is the state; the room is just sockets.
