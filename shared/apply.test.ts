@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { apply, childrenOf, nextPosition, type Items } from "./apply.ts";
-import { MAX_TITLE_LENGTH, normalizeTitle, parseClientMessage, type Op } from "./protocol.ts";
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_TITLE_LENGTH,
+  normalizeTitle,
+  parseClientMessage,
+  type Op,
+} from "./protocol.ts";
 import type { Item } from "./types.ts";
 
 const base = { opId: "op-1", clientId: "client-a" };
@@ -136,5 +142,19 @@ describe("S2 mark done", () => {
 
     const undone = apply(done, { ...base, kind: "updateItem", id: "a", patch: { done: false } });
     expect(undone.get("a")).toEqual(items.get("a"));
+  });
+});
+
+describe("S9 markdown descriptions", () => {
+  it("AC6 the protocol accepts null and a 5 000-char description, rejects longer or non-string", () => {
+    const parse = (description: unknown) =>
+      parseClientMessage({
+        type: "op",
+        op: { ...base, kind: "updateItem", id: "a", patch: { description } },
+      }).ok;
+    expect(parse(null)).toBe(true);
+    expect(parse("x".repeat(MAX_DESCRIPTION_LENGTH))).toBe(true);
+    expect(parse("x".repeat(MAX_DESCRIPTION_LENGTH + 1))).toBe(false);
+    expect(parse(42)).toBe(false);
   });
 });

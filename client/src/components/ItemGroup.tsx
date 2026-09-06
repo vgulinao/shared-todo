@@ -6,6 +6,7 @@ import { childrenOf, type Items } from "../../../shared/apply.ts";
 import { idsToToggle, progressOf } from "../../../shared/subtasks.ts";
 import { subtotalOf } from "../../../shared/cost.ts";
 import { CostControl } from "./CostControl.tsx";
+import { Description } from "./Description.tsx";
 import { createItem, deleteItem, updateItem } from "../lib/ops.ts";
 import { AddItem } from "./AddItem.tsx";
 import { ItemRow, type ItemRowProps } from "./ItemRow.tsx";
@@ -24,6 +25,7 @@ type Props = {
 export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [notesEditing, setNotesEditing] = useState<string | null>(null);
   const children = childrenOf(items, parent.id);
   const progress = progressOf(children);
   const Row = sortable ? SortableItemRow : ItemRow;
@@ -50,8 +52,31 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
     />
   );
 
+  const notesButton = (item: Item) =>
+    editable && item.description === null && notesEditing !== item.id ? (
+      <button
+        className="add-notes"
+        aria-label={`Add notes to ${item.title}`}
+        onClick={() => setNotesEditing(item.id)}
+      >
+        + notes
+      </button>
+    ) : null;
+
+  const description = (item: Item) => (
+    <Description
+      key={notesEditing === item.id ? "editing" : "idle"}
+      text={item.description}
+      editable={editable}
+      editing={notesEditing === item.id}
+      onEditingChange={(on) => setNotesEditing(on ? item.id : null)}
+      onChange={(text) => dispatch(updateItem(item.id, { description: text }))}
+    />
+  );
+
   const extras = (
     <>
+      {notesButton(parent)}
       {costOf(parent, true)}
       {progress.total > 0 && (
         <button
@@ -83,11 +108,23 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
 
   const showChildren = !collapsed && (children.length > 0 || adding);
   const childRows = children.map((child) => (
-    <Row key={child.id} {...rowProps(child, false)} extras={costOf(child, false)} />
+    <Row
+      key={child.id}
+      {...rowProps(child, false)}
+      extras={
+        <>
+          {notesButton(child)}
+          {costOf(child, false)}
+        </>
+      }
+    >
+      {description(child)}
+    </Row>
   ));
 
   return (
     <Row {...rowProps(parent, true)} extras={extras}>
+      {description(parent)}
       {progress.total > 0 && (
         <div className="progress-bar" aria-hidden="true">
           <div style={{ width: `${(progress.done / progress.total) * 100}%` }} />

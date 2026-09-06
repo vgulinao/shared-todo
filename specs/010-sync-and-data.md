@@ -99,7 +99,8 @@ Idempotency is by construction, not by bookkeeping:
 | renameList | `UPDATE lists SET title`             | same result       |
 
 Validation rules for item fields: titles are trimmed, non-empty, at most 500 characters; `cost` is
-`null` or a finite number `>= 0`; `position` is a finite number.
+`null` or a finite number `>= 0`; `description` is `null` or a string of at most 5 000 characters;
+`position` is a finite number.
 
 An op that references a missing item (deleted by someone else meanwhile) changes nothing. The server
 acknowledges it to the sender only (so the op leaves the pending queue) and does not broadcast it; every

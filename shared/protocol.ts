@@ -1,6 +1,7 @@
 import type { Item, ListInfo, Result } from "./types.ts";
 
 export const MAX_TITLE_LENGTH = 500;
+export const MAX_DESCRIPTION_LENGTH = 5000;
 
 export type ItemPatch = Partial<Pick<Item, "title" | "description" | "done" | "cost">>;
 
@@ -88,7 +89,7 @@ function parseItem(raw: unknown): Item | null {
     !isString(raw.id) ||
     !isNullableString(raw.parentId) ||
     title === null ||
-    !isNullableString(raw.description) ||
+    !isNullableDescription(raw.description) ||
     typeof raw.done !== "boolean" ||
     !isNullableCost(raw.cost) ||
     !isFinite(raw.position)
@@ -115,7 +116,7 @@ function parsePatch(raw: unknown): ItemPatch | null {
     patch.title = title;
   }
   if ("description" in raw) {
-    if (!isNullableString(raw.description)) return null;
+    if (!isNullableDescription(raw.description)) return null;
     patch.description = raw.description;
   }
   if ("done" in raw) {
@@ -140,6 +141,10 @@ function isNullableString(v: unknown): v is string | null {
 }
 function isFinite(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
+}
+/** A description is absent (null) or text up to the length limit. */
+function isNullableDescription(v: unknown): v is string | null {
+  return v === null || (typeof v === "string" && v.length <= MAX_DESCRIPTION_LENGTH);
 }
 /** A cost is absent (null) or a non-negative finite number. */
 function isNullableCost(v: unknown): v is number | null {
