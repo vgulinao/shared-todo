@@ -17,7 +17,7 @@ priorities or the route through the shop.
   move is one operation and never conflicts with a concurrent move of a different item.
 - **AC4** Given two people move different items at the same time, then both screens end up with
   the same order. Given two people move the same item at the same time, both screens still end up
-App  with the same order (the later arrival wins). Given two people add an item at the same time (same
+  App with the same order (the later arrival wins). Given two people add an item at the same time (same
   computed position), both screens still show the same order: ties are broken by item id, on the
   client and in the database.
 - **AC5** Given many moves have squeezed two neighbouring positions so close that no float fits
