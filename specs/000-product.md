@@ -20,7 +20,7 @@ There are no accounts. The link is the identity and the permission.
 | S6  | Reorder items via drag & drop                                | done    |
 | S7  | Sub-tasks with overall progress on the parent                | done    |
 | S8  | Cost per task or sub-task, with totals                       | done    |
-| S9  | Markdown descriptions rendered as rich text when not editing | planned |
+| S9  | Markdown descriptions rendered as rich text when not editing | done    |
 | S10 | Keep editing offline, sync when back online                  | stretch |
 
 Each story has its own spec in `specs/stories/` with acceptance criteria and a test plan. The README

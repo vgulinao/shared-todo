@@ -1,6 +1,6 @@
 # S9 — Markdown descriptions
 
-Status: approved
+Status: done
 
 ## User story
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -26,6 +26,8 @@ import { AddItem } from "../components/AddItem.tsx";
 import { ItemGroup, type NotesDraft } from "../components/ItemGroup.tsx";
 import { ListTitle } from "../components/ListTitle.tsx";
 import { ShareLinks } from "../components/ShareLinks.tsx";
+import { Connecting } from "../components/Connecting.tsx";
+import { loadRecent, remember, retitle, saveRecent } from "../lib/recent.ts";
 import { NotFound } from "./NotFound.tsx";
 
 export function ListPage({ token }: { token: string }) {
@@ -37,12 +39,37 @@ export function ListPage({ token }: { token: string }) {
   const [notesDraft, setNotesDraft] = useState<NotesDraft | null>(null);
 
   const title = state.list?.title;
+  const role = state.list?.role;
   useEffect(() => {
     document.title = title ? `${title} · Shared To-Do` : "Shared To-Do";
     return () => {
       document.title = "Shared To-Do";
     };
   }, [title]);
+
+  // Remember this list on this device (spec X1 AC2). The open is stamped once per visit; a later
+  // title change (someone renamed it) updates the stored title without moving the entry.
+  const stamped = useRef<string | null>(null);
+  useEffect(() => {
+    if (!title || !role) return;
+    if (stamped.current === token) {
+      saveRecent(retitle(loadRecent(), token, title));
+    } else {
+      stamped.current = token;
+      saveRecent(remember(loadRecent(), { token, title, role, at: Date.now() }));
+    }
+  }, [token, title, role]);
+
+  // Escape closes the share panel from anywhere on the page.
+  useEffect(() => {
+    if (!showShare) return;
+    // Inline editors stop propagation of the Escape they consume, so this only sees the rest.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowShare(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showShare]);
 
   // A rejection message is informative for a few seconds, then noise.
   const [dismissedError, setDismissedError] = useState<string | null>(null);
@@ -65,7 +92,7 @@ export function ListPage({ token }: { token: string }) {
   if (!state.list) {
     return (
       <main className="app">
-        <p className="muted">Connecting…</p>
+        <Connecting />
       </main>
     );
   }
@@ -123,7 +150,7 @@ export function ListPage({ token }: { token: string }) {
           onRename={(text) => dispatch(renameList(text))}
         />
         {!editable && <span className="badge">View only</span>}
-        {state.status !== "online" && <span className="badge">{state.status}</span>}
+        {state.status === "offline" && <span className="badge">Offline · reconnecting…</span>}
         {editable && (
           <button
             className="secondary share-toggle"

@@ -69,7 +69,10 @@ export function ItemRow({
             onBlur={save}
             onKeyDown={(e) => {
               if (e.key === "Enter") save();
-              if (e.key === "Escape") setDraft(null);
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setDraft(null);
+              }
             }}
           />
         )}
