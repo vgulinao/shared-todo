@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { MAX_RECENT, forget, parseRecent, remember, timeAgo, type RecentList } from "./recent.ts";
+import {
+  MAX_RECENT,
+  forget,
+  parseRecent,
+  remember,
+  retitle,
+  timeAgo,
+  type RecentList,
+} from "./recent.ts";
 
 const entry = (token: string, at = 0): RecentList => ({ token, title: token, role: "edit", at });
 
@@ -18,6 +26,14 @@ describe("X1 recent lists", () => {
     for (let i = 0; i < MAX_RECENT + 5; i++) list = remember(list, entry(`t${i}`, i));
     expect(list).toHaveLength(MAX_RECENT);
     expect(list[0]?.token).toBe(`t${MAX_RECENT + 4}`);
+  });
+
+  it("AC2 retitle changes the title only: no move, same at", () => {
+    const list = remember(remember([], entry("a", 1)), entry("b", 2));
+    const next = retitle(list, "a", "renamed");
+    expect(next.map((r) => r.token)).toEqual(["b", "a"]);
+    expect(next[1]).toEqual({ ...entry("a", 1), title: "renamed" });
+    expect(retitle(list, "a", "a")).toEqual(list);
   });
 
   it("AC2 forget removes only the given token", () => {
@@ -44,5 +60,9 @@ describe("X1 recent lists", () => {
     expect(timeAgo(now - 5 * 60_000, now)).toBe("5 minutes ago");
     expect(timeAgo(now - 3 * 3_600_000, now)).toBe("3 hours ago");
     expect(timeAgo(now - 2 * 86_400_000, now)).toBe("2 days ago");
+    // Never overstates: 90 minutes is "1 hour ago", 36 hours is "1 day ago", 23h30 is still hours.
+    expect(timeAgo(now - 90 * 60_000, now)).toBe("1 hour ago");
+    expect(timeAgo(now - 36 * 3_600_000, now)).toBe("1 day ago");
+    expect(timeAgo(now - 23.5 * 3_600_000, now)).toBe("23 hours ago");
   });
 });

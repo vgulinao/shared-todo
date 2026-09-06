@@ -1,4 +1,4 @@
-import { navigate } from "../lib/router.ts";
+import { onLinkClick } from "../lib/router.ts";
 
 export function NotFound() {
   return (
@@ -9,13 +9,7 @@ export function NotFound() {
         matches no list: the link may be incomplete, mistyped, or from a list that was never
         created.
       </p>
-      <a
-        href="/"
-        onClick={(e) => {
-          e.preventDefault();
-          navigate("/");
-        }}
-      >
+      <a href="/" onClick={onLinkClick}>
         Create a new list
       </a>
     </main>

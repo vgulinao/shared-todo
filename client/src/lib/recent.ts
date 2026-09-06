@@ -11,6 +11,11 @@ export function remember(list: RecentList[], entry: RecentList): RecentList[] {
   return [entry, ...list.filter((r) => r.token !== entry.token)].slice(0, MAX_RECENT);
 }
 
+/** Updates the title of an existing entry without moving it or touching `at`. Pure. */
+export function retitle(list: RecentList[], token: string, title: string): RecentList[] {
+  return list.map((r) => (r.token === token && r.title !== title ? { ...r, title } : r));
+}
+
 /** Removes an entry. Pure. */
 export function forget(list: RecentList[], token: string): RecentList[] {
   return list.filter((r) => r.token !== token);
@@ -55,14 +60,14 @@ export function saveRecent(list: RecentList[]): void {
   }
 }
 
-/** "just now", "5 minutes ago", "3 days ago". Coarse on purpose. */
+/** "just now", "5 minutes ago", "3 days ago". Coarse on purpose, and never more than has passed. */
 export function timeAgo(at: number, now = Date.now()): string {
-  const s = Math.max(0, Math.round((now - at) / 1000));
+  const s = Math.max(0, Math.floor((now - at) / 1000));
   if (s < 60) return "just now";
-  const m = Math.round(s / 60);
+  const m = Math.floor(s / 60);
   if (m < 60) return `${m} minute${m === 1 ? "" : "s"} ago`;
-  const h = Math.round(m / 60);
+  const h = Math.floor(m / 60);
   if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
-  const d = Math.round(h / 24);
+  const d = Math.floor(h / 24);
   return `${d} day${d === 1 ? "" : "s"} ago`;
 }

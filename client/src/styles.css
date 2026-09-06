@@ -541,7 +541,6 @@ button.cost:hover {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-accent);
   border-radius: 4px;
-  outline: none;
   resize: vertical;
 }
 .hint {
@@ -703,5 +702,8 @@ button.cost:hover {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+  .spinner {
+    display: none;
   }
 }

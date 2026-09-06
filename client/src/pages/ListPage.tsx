@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -27,7 +27,7 @@ import { ItemGroup, type NotesDraft } from "../components/ItemGroup.tsx";
 import { ListTitle } from "../components/ListTitle.tsx";
 import { ShareLinks } from "../components/ShareLinks.tsx";
 import { Connecting } from "../components/Connecting.tsx";
-import { loadRecent, remember, saveRecent } from "../lib/recent.ts";
+import { loadRecent, remember, retitle, saveRecent } from "../lib/recent.ts";
 import { NotFound } from "./NotFound.tsx";
 
 export function ListPage({ token }: { token: string }) {
@@ -47,17 +47,26 @@ export function ListPage({ token }: { token: string }) {
     };
   }, [title]);
 
-  // Remember this list on this device (spec X1 AC2). Refreshed on every open, so renames follow.
+  // Remember this list on this device (spec X1 AC2). The open is stamped once per visit; a later
+  // title change (someone renamed it) updates the stored title without moving the entry.
+  const stamped = useRef<string | null>(null);
   useEffect(() => {
     if (!title || !role) return;
-    saveRecent(remember(loadRecent(), { token, title, role, at: Date.now() }));
+    if (stamped.current === token) {
+      saveRecent(retitle(loadRecent(), token, title));
+    } else {
+      stamped.current = token;
+      saveRecent(remember(loadRecent(), { token, title, role, at: Date.now() }));
+    }
   }, [token, title, role]);
 
   // Escape closes the share panel from anywhere on the page.
   useEffect(() => {
     if (!showShare) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowShare(false);
+      // An open inline editor owns Escape; the panel closes only from outside a text field.
+      const tag = document.activeElement?.tagName;
+      if (e.key === "Escape" && tag !== "INPUT" && tag !== "TEXTAREA") setShowShare(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -143,7 +152,6 @@ export function ListPage({ token }: { token: string }) {
         />
         {!editable && <span className="badge">View only</span>}
         {state.status === "offline" && <span className="badge">Offline · reconnecting…</span>}
-        {state.status === "connecting" && <span className="badge">Connecting…</span>}
         {editable && (
           <button
             className="secondary share-toggle"

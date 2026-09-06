@@ -1,5 +1,5 @@
-import { useState, type MouseEvent } from "react";
-import { navigate } from "../lib/router.ts";
+import { useState } from "react";
+import { navigate, onLinkClick } from "../lib/router.ts";
 import { forget, loadRecent, saveRecent, timeAgo } from "../lib/recent.ts";
 
 export function Home() {
@@ -19,11 +19,6 @@ export function Home() {
       setError(`Could not create a list (${err instanceof Error ? err.message : "unknown error"})`);
       setBusy(false);
     }
-  }
-
-  function open(e: MouseEvent<HTMLAnchorElement>, token: string) {
-    e.preventDefault();
-    navigate(`/l/${token}`);
   }
 
   function remove(token: string) {
@@ -47,10 +42,10 @@ export function Home() {
           <ul>
             {recent.map((r) => (
               <li key={r.token}>
-                <a href={`/l/${r.token}`} onClick={(e) => open(e, r.token)}>
+                <a href={`/l/${r.token}`} onClick={onLinkClick}>
                   {r.title}
                 </a>
-                <span className="tag">{r.role === "edit" ? "edit" : "view"}</span>
+                <span className="tag">{r.role}</span>
                 <span className="muted when">{timeAgo(r.at)}</span>
                 <button
                   className="item-delete"
