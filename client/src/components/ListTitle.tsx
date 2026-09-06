@@ -26,7 +26,10 @@ export function ListTitle({ title, editable, onRename }: Props) {
         onBlur={save}
         onKeyDown={(e) => {
           if (e.key === "Enter") save();
-          if (e.key === "Escape") setDraft(null);
+          if (e.key === "Escape") {
+            e.stopPropagation(); // this editor owns Escape; page-level shortcuts must not also fire
+            setDraft(null);
+          }
         }}
       />
     );

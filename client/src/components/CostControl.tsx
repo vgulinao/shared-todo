@@ -87,7 +87,10 @@ export function CostControl({ own, subtasks, editable, itemTitle, onChange }: Pr
         onWheel={(e) => e.currentTarget.blur()}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit("enter");
-          if (e.key === "Escape") close();
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            close();
+          }
         }}
       />
     );

@@ -31,6 +31,7 @@ export function AddItem({ onAdd, placeholder = "Add an item", onCancel, classNam
       onKeyDown={(e) => {
         if (e.key === "Enter") submit();
         if (e.key === "Escape") {
+          e.stopPropagation();
           if (draft === "") onCancel?.();
           else setDraft("");
         }

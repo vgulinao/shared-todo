@@ -63,10 +63,9 @@ export function ListPage({ token }: { token: string }) {
   // Escape closes the share panel from anywhere on the page.
   useEffect(() => {
     if (!showShare) return;
+    // Inline editors stop propagation of the Escape they consume, so this only sees the rest.
     const onKey = (e: KeyboardEvent) => {
-      // An open inline editor owns Escape; the panel closes only from outside a text field.
-      const tag = document.activeElement?.tagName;
-      if (e.key === "Escape" && tag !== "INPUT" && tag !== "TEXTAREA") setShowShare(false);
+      if (e.key === "Escape") setShowShare(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

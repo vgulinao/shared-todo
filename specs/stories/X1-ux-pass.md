@@ -20,8 +20,9 @@ concept is out; this is about the product feeling finished.
 - **AC3 Narrow screens.** At 360 px wide the list is usable: the header wraps, the share panel
   stacks, the row controls do not push the title off-screen, the total line stays visible.
 - **AC4 Keyboard path through a whole session.** Tab order goes title → share → add → rows in
-  order; every control has a visible focus ring; Escape closes the share panel; Enter in the add
-  input keeps focus there. Verified by hand with the mouse unplugged.
+  order; every control has a visible focus ring; Escape closes the share panel from anywhere on the
+  page, except that an open inline editor (title, item, cost, notes, add) consumes its Escape to
+  cancel and the panel stays; Enter in the add input keeps focus there. Verified by hand with the mouse unplugged.
 - **AC5 States and wording.** "Connecting…" shows a subtle spinner after one second; the offline
   badge reads "Offline · reconnecting…"; the empty state names the action; the not-found page
   explains what a link is. The page has a favicon and a short `<meta name="description">`.

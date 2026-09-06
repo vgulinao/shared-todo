@@ -36,7 +36,10 @@ export function Description({ text, editable, draft, onDraftChange, onChange }: 
           onBlur={save}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) save();
-            if (e.key === "Escape") onDraftChange(null);
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              onDraftChange(null);
+            }
           }}
         />
         <span className="muted hint">Ctrl+Enter to save, Esc to cancel</span>
