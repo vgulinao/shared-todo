@@ -1,6 +1,6 @@
 # S6 — Reorder items via drag & drop
 
-Status: approved
+Status: done
 
 ## User story
 
