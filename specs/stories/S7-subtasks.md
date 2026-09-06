@@ -1,6 +1,6 @@
 # S7 — Sub-tasks with progress
 
-Status: approved
+Status: done
 
 ## User story
 
