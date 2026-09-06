@@ -23,7 +23,7 @@ import type { Item } from "../../../shared/types.ts";
 import { useList } from "../lib/useList.ts";
 import { createItem, moveItem, renameList } from "../lib/ops.ts";
 import { AddItem } from "../components/AddItem.tsx";
-import { ItemGroup } from "../components/ItemGroup.tsx";
+import { ItemGroup, type NotesDraft } from "../components/ItemGroup.tsx";
 import { ListTitle } from "../components/ListTitle.tsx";
 import { ShareLinks } from "../components/ShareLinks.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -32,6 +32,9 @@ export function ListPage({ token }: { token: string }) {
   const { state, dispatch } = useList(token);
   const [showDone, setShowDone] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  // The notes draft is page state: a group remounts when another client ticks it (pending → Completed),
+  // and the text being typed must survive that.
+  const [notesDraft, setNotesDraft] = useState<NotesDraft | null>(null);
 
   const title = state.list?.title;
   useEffect(() => {
@@ -105,6 +108,8 @@ export function ListPage({ token }: { token: string }) {
       items={state.items}
       editable={editable}
       sortable={sortable}
+      notesDraft={notesDraft}
+      onNotesDraft={setNotesDraft}
       dispatch={dispatch}
     />
   );

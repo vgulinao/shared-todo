@@ -1,6 +1,6 @@
 # S8 — Cost per task and sub-task, with totals
 
-Status: approved
+Status: done
 
 ## User story
 

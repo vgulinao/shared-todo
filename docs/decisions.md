@@ -114,3 +114,16 @@ skill under test), `react-beautiful-dnd` (unmaintained), the HTML5 drag-and-drop
 keyboard support).
 **Cost.** Three runtime dependencies, about 18 kB gzipped added to the bundle, React-coupled. If the
 library were removed, `shared/order.ts` and its tests would not change.
+
+## D12 — `react-markdown` for descriptions
+
+**Context.** S9 renders user-written Markdown inside a page other users see: the one place in the
+app where untrusted text becomes markup.
+**Decision.** `react-markdown`. It parses Markdown into React elements — there is no `innerHTML` step —
+and it does not render raw HTML in the source by default, so `<script>` in a description shows as
+text. Links get `target="_blank" rel="noopener noreferrer"` through one component override.
+CommonMark only; no extension plugins.
+**Not chosen.** `marked` or `markdown-it` plus `DOMPurify` (two libraries and an `innerHTML` we would
+have to defend in review), writing a Markdown parser (not the skill under test, and a security surface).
+**Cost.** About 40 kB gzipped added to the bundle for the parser pipeline. The render-to-string test
+in `Description.test.tsx` pins the safety properties so an upgrade cannot silently change them.

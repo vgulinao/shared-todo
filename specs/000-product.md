@@ -19,7 +19,7 @@ There are no accounts. The link is the identity and the permission.
 | S5  | Share a list via unique link (view-only or edit)             | done    |
 | S6  | Reorder items via drag & drop                                | done    |
 | S7  | Sub-tasks with overall progress on the parent                | done    |
-| S8  | Cost per task or sub-task, with totals                       | planned |
+| S8  | Cost per task or sub-task, with totals                       | done    |
 | S9  | Markdown descriptions rendered as rich text when not editing | planned |
 | S10 | Keep editing offline, sync when back online                  | stretch |
 

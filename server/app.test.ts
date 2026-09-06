@@ -495,3 +495,43 @@ describe("S8 cost", () => {
     client.socket.close();
   });
 });
+
+describe("S9 markdown descriptions", () => {
+  it("AC1/AC4 a description round-trips through the database and null clears it", async () => {
+    const { editToken } = await createList();
+    const a = uid();
+    const client = connect(editToken);
+    await client.next();
+    client.send({ ...base, opId: "op-1", kind: "createItem", item: item({ id: a, position: 1 }) });
+    client.send({
+      ...base,
+      opId: "op-2",
+      kind: "updateItem",
+      id: a,
+      patch: { description: "**bold** and `code`" },
+    });
+    await client.next();
+    await client.next();
+    client.socket.close();
+
+    const withNotes = connect(editToken);
+    const first = await withNotes.next();
+    expect(first.type).toBe("snapshot");
+    if (first.type === "snapshot") expect(first.items[0]?.description).toBe("**bold** and `code`");
+    withNotes.send({
+      ...base,
+      opId: "op-3",
+      kind: "updateItem",
+      id: a,
+      patch: { description: null },
+    });
+    await withNotes.next();
+    withNotes.socket.close();
+
+    const cleared = connect(editToken);
+    const second = await cleared.next();
+    expect(second.type).toBe("snapshot");
+    if (second.type === "snapshot") expect(second.items[0]?.description).toBeNull();
+    cleared.socket.close();
+  });
+});

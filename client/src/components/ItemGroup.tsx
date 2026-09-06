@@ -6,10 +6,13 @@ import { childrenOf, type Items } from "../../../shared/apply.ts";
 import { idsToToggle, progressOf } from "../../../shared/subtasks.ts";
 import { subtotalOf } from "../../../shared/cost.ts";
 import { CostControl } from "./CostControl.tsx";
+import { Description } from "./Description.tsx";
 import { createItem, deleteItem, updateItem } from "../lib/ops.ts";
 import { AddItem } from "./AddItem.tsx";
 import { ItemRow, type ItemRowProps } from "./ItemRow.tsx";
 import { SortableItemRow } from "./SortableItemRow.tsx";
+
+export type NotesDraft = { id: string; text: string };
 
 type Props = {
   parent: Item;
@@ -17,11 +20,21 @@ type Props = {
   editable: boolean;
   /** Draggable rows inside the page's DndContext (pending list), or plain rows (Completed, view-only). */
   sortable: boolean;
+  notesDraft: NotesDraft | null;
+  onNotesDraft: (draft: NotesDraft | null) => void;
   dispatch: (op: Op) => void;
 };
 
 /** A top-level item with its sub-tasks: progress, collapse, inline "add sub-task", nested list. */
-export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props) {
+export function ItemGroup({
+  parent,
+  items,
+  editable,
+  sortable,
+  notesDraft,
+  onNotesDraft,
+  dispatch,
+}: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
   const children = childrenOf(items, parent.id);
@@ -50,8 +63,30 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
     />
   );
 
+  const notesButton = (item: Item) =>
+    editable && notesDraft?.id !== item.id ? (
+      <button
+        className="add-notes"
+        aria-label={`${item.description === null ? "Add" : "Edit"} notes for ${item.title}`}
+        onClick={() => onNotesDraft({ id: item.id, text: item.description ?? "" })}
+      >
+        {item.description === null ? "+ notes" : "notes"}
+      </button>
+    ) : null;
+
+  const description = (item: Item) => (
+    <Description
+      text={item.description}
+      editable={editable}
+      draft={notesDraft?.id === item.id ? notesDraft.text : null}
+      onDraftChange={(text) => onNotesDraft(text === null ? null : { id: item.id, text })}
+      onChange={(text) => dispatch(updateItem(item.id, { description: text }))}
+    />
+  );
+
   const extras = (
     <>
+      {notesButton(parent)}
       {costOf(parent, true)}
       {progress.total > 0 && (
         <button
@@ -83,11 +118,23 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
 
   const showChildren = !collapsed && (children.length > 0 || adding);
   const childRows = children.map((child) => (
-    <Row key={child.id} {...rowProps(child, false)} extras={costOf(child, false)} />
+    <Row
+      key={child.id}
+      {...rowProps(child, false)}
+      extras={
+        <>
+          {notesButton(child)}
+          {costOf(child, false)}
+        </>
+      }
+    >
+      {description(child)}
+    </Row>
   ));
 
   return (
     <Row {...rowProps(parent, true)} extras={extras}>
+      {description(parent)}
       {progress.total > 0 && (
         <div className="progress-bar" aria-hidden="true">
           <div style={{ width: `${(progress.done / progress.total) * 100}%` }} />
