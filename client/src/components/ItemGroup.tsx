@@ -5,7 +5,6 @@ import type { Item } from "../../../shared/types.ts";
 import { childrenOf, type Items } from "../../../shared/apply.ts";
 import { idsToToggle, progressOf } from "../../../shared/subtasks.ts";
 import { subtotalOf } from "../../../shared/cost.ts";
-import { formatCost } from "../lib/format.ts";
 import { CostControl } from "./CostControl.tsx";
 import { createItem, deleteItem, updateItem } from "../lib/ops.ts";
 import { AddItem } from "./AddItem.tsx";
@@ -41,24 +40,15 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
     onDelete: () => dispatch(deleteItem(item.id)),
   });
 
-  const costOf = (item: Item, isParent: boolean) => {
-    const shown = isParent ? subtotalOf(item, children) : item.cost;
-    const fromChildren = isParent ? subtotalOf({ ...item, cost: null }, children) : null;
-    const breakdown =
-      fromChildren !== null
-        ? `own ${formatCost(item.cost ?? 0)} + sub-tasks ${formatCost(fromChildren)}`
-        : undefined;
-    return (
-      <CostControl
-        own={item.cost}
-        shown={shown}
-        breakdown={breakdown}
-        editable={editable}
-        itemTitle={item.title}
-        onChange={(cost) => dispatch(updateItem(item.id, { cost }))}
-      />
-    );
-  };
+  const costOf = (item: Item, isParent: boolean) => (
+    <CostControl
+      own={item.cost}
+      subtasks={isParent ? subtotalOf({ ...item, cost: null }, children) : null}
+      editable={editable}
+      itemTitle={item.title}
+      onChange={(cost) => dispatch(updateItem(item.id, { cost }))}
+    />
+  );
 
   const extras = (
     <>

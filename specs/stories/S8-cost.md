@@ -14,8 +14,10 @@ shopping trip will cost.
   survives a reload.
 - **AC2** Given an item has a cost, when I clear the field and press Enter, then the cost is removed
   (not set to zero). Escape cancels without changes.
-- **AC3** A cost is a non-negative number. Anything else (text, negative) is refused by the input
-  and, if a modified client sends it anyway, rejected by the server.
+- **AC3** A cost is a non-negative number. Anything else (text, a negative, a half-typed value the
+  browser cannot parse) keeps the editor open and marked invalid; Enter does not save it, and leaving
+  the field cancels the edit rather than saving or clearing. If a modified client sends an invalid
+  cost anyway, the server rejects it.
 - **AC4** Given a parent has sub-tasks with costs, then the parent row shows the group subtotal:
   its own cost plus its sub-tasks' costs. The parent's own cost is still editable through the same
   control; the subtotal is display only.
@@ -29,7 +31,9 @@ shopping trip will cost.
 
 - The cost control sits at the right of the row, before delete: a muted "+ cost" on hover when
   empty, or the formatted number when set; click to edit inline in a small numeric input. Enter
-  saves, Escape cancels, empty saves as "no cost".
+  saves, Escape cancels, a deliberately emptied field saves as "no cost". Scrolling over the field
+  never changes its value. A parent's control is named after what it edits: "own 15.00, sub-tasks
+  30.00, total 45.00".
 - Parent subtotal reads like `45.00` with a title attribute "own 15.00 + sub-tasks 30.00" for anyone
   who wonders. Struck-through items keep their cost; the total counts them (it is a cost, not a
   budget of remaining work).

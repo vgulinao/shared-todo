@@ -424,3 +424,7 @@ button.cost:hover {
   font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
 }
+.cost-edit.invalid {
+  border-color: var(--color-danger);
+  outline: 1px solid var(--color-danger);
+}

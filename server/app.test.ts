@@ -473,6 +473,7 @@ describe("S8 cost", () => {
 
     const withCost = connect(editToken);
     const first = await withCost.next();
+    expect(first.type).toBe("snapshot");
     if (first.type === "snapshot") expect(first.items[0]?.cost).toBe(12.5);
     withCost.send({ ...base, opId: "op-3", kind: "updateItem", id: a, patch: { cost: null } });
     await withCost.next();
@@ -480,6 +481,7 @@ describe("S8 cost", () => {
 
     const cleared = connect(editToken);
     const second = await cleared.next();
+    expect(second.type).toBe("snapshot");
     if (second.type === "snapshot") expect(second.items[0]?.cost).toBeNull();
     cleared.socket.close();
   });
