@@ -80,3 +80,20 @@ describe("S6 reorder", () => {
     expect(planMove([item("a", 1)], "ghost", 0)).toEqual([]);
   });
 });
+
+describe("display order is a pure function of the data", () => {
+  it("AC4 equal positions are ordered by id regardless of insertion order", () => {
+    const x = item("x", 2);
+    const y = item("y", 2);
+    const xy: Items = new Map([
+      ["x", x],
+      ["y", y],
+    ]);
+    const yx: Items = new Map([
+      ["y", y],
+      ["x", x],
+    ]);
+    expect(childrenOf(xy, null).map((i) => i.id)).toEqual(["x", "y"]);
+    expect(childrenOf(yx, null).map((i) => i.id)).toEqual(["x", "y"]);
+  });
+});

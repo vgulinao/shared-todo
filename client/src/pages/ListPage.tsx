@@ -7,6 +7,7 @@ import {
   closestCenter,
   useSensor,
   useSensors,
+  type Announcements,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -88,16 +89,14 @@ export function ListPage({ token }: { token: string }) {
 
   // Screen-reader announcements name the item instead of dnd-kit's default, which reads out the id.
   const titleOf = (id: unknown) => state.items.get(String(id))?.title ?? "item";
-  const announcements = {
-    onDragStart: ({ active }: { active: { id: unknown } }) => `Picked up ${titleOf(active.id)}.`,
-    onDragOver: ({ over }: { over: { id: unknown } | null }) =>
-      over ? `Over ${titleOf(over.id)}.` : "No longer over an item.",
-    onDragEnd: ({ active, over }: { active: { id: unknown }; over: { id: unknown } | null }) =>
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `Picked up ${titleOf(active.id)}.`,
+    onDragOver: ({ over }) => (over ? `Over ${titleOf(over.id)}.` : "No longer over an item."),
+    onDragEnd: ({ active, over }) =>
       over
         ? `Moved ${titleOf(active.id)} to the spot of ${titleOf(over.id)}.`
         : `Dropped ${titleOf(active.id)}.`,
-    onDragCancel: ({ active }: { active: { id: unknown } }) =>
-      `Cancelled moving ${titleOf(active.id)}.`,
+    onDragCancel: ({ active }) => `Cancelled moving ${titleOf(active.id)}.`,
   };
 
   return (

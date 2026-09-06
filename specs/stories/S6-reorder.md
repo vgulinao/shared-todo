@@ -17,7 +17,9 @@ priorities or the route through the shop.
   move is one operation and never conflicts with a concurrent move of a different item.
 - **AC4** Given two people move different items at the same time, then both screens end up with
   the same order. Given two people move the same item at the same time, both screens still end up
-  with the same order (the later arrival wins).
+  App with the same order (the later arrival wins). Given two people add an item at the same time (same
+  computed position), both screens still show the same order: ties are broken by item id, on the
+  client and in the database.
 - **AC5** Given many moves have squeezed two neighbouring positions so close that no float fits
   between them, then the client renumbers the siblings to whole numbers before placing the item,
   preserving their order. This is covered by a test, not expected in real use.
@@ -45,7 +47,13 @@ validates the parent rules. Additions are pure functions in `shared/`:
 
 - `positionBetween(before, after)` → the midpoint, or the end positions (`min - 1`, `max + 1`), or
   `null` when no float fits between the two neighbours.
-- `renumbered(siblings)` → the move ops that assign whole-number positions in the current order.
+- `planMove(siblings, itemId, toIndex)` → the placements (`{ id, position }`) that put the item in that
+  slot among its siblings: one placement in the normal case. When no float fits between the new
+  neighbours it returns a placement per sibling (whole numbers, order preserved) plus the moved item.
+  That fallback is the one case where a move is more than one operation (AC3): the placements travel
+  as separate `moveItem` ops, so peers may briefly see an intermediate order, and a disconnect
+  mid-sequence leaves positions half-renumbered until the client reconnects and replays. Accepted:
+  it takes ~50 consecutive drops into the same gap to reach it.
 
 Client: `@dnd-kit/core` + `@dnd-kit/sortable` for pointer, touch, and keyboard mechanics and the
 accessibility announcements. The ordering logic (which position to send) is ours.

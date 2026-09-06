@@ -42,13 +42,18 @@ export function apply(items: Items, op: Op): Items {
   }
 }
 
-/** Direct children of `parentId` (null for top level), in display order. */
+/**
+ * Direct children of `parentId` (null for top level), in display order. Ties on position are
+ * broken by id so the order is a pure function of the data: two clients that created items at the
+ * same moment (same `nextPosition`) must not end up sorted by their own insertion order. The server
+ * orders the snapshot the same way.
+ */
 export function childrenOf(items: Items, parentId: string | null): Item[] {
   const result: Item[] = [];
   for (const item of items.values()) {
     if (item.parentId === parentId) result.push(item);
   }
-  return result.sort((a, b) => a.position - b.position);
+  return result.sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1));
 }
 
 /** Position for a new item appended after the current last sibling. */

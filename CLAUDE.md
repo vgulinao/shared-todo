@@ -39,7 +39,8 @@ where a requirement demands it, and write down why in `docs/decisions.md`.
   `server/` even when the unit under test is client code (e.g. the sync engine). Name them after the story and criterion:
   `describe("S4 real-time")` → `it("AC2 an op from one client reaches the other")`.
 - Branch per story (`s4-realtime`), PR per story, commit messages `feat(S4): ...`, `fix(S4): ...`,
-  `docs: ...`, `chore: ...`. Small commits.
+  `docs: ...`, `chore: ...`. Small commits. Code review happens on the PR: every review comment gets
+  a fix commit and a reply before merge.
 - Run `npm run check` before pushing.
 
 ## Not allowed

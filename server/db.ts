@@ -44,7 +44,7 @@ export class Db {
       "SELECT id, title, edit_token, view_token FROM lists WHERE edit_token = ? OR view_token = ?",
     );
     this.selectItems = this.sqlite.prepare(
-      "SELECT id, parent_id, title, description, done, cost, position FROM items WHERE list_id = ? ORDER BY position",
+      "SELECT id, parent_id, title, description, done, cost, position FROM items WHERE list_id = ? ORDER BY position, id",
     );
     this.topLevelItem = this.sqlite.prepare(
       "SELECT 1 AS ok FROM items WHERE id = ? AND list_id = ? AND parent_id IS NULL",
