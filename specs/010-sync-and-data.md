@@ -98,6 +98,9 @@ Idempotency is by construction, not by bookkeeping:
 | deleteItem | `DELETE ... WHERE id = ?` (cascade)  | second is a no-op |
 | renameList | `UPDATE lists SET title`             | same result       |
 
+Validation rules for item fields: titles are trimmed, non-empty, at most 500 characters; `cost` is
+`null` or a finite number `>= 0`; `position` is a finite number.
+
 An op that references a missing item (deleted by someone else meanwhile) changes nothing. The server
 acknowledges it to the sender only (so the op leaves the pending queue) and does not broadcast it; every
 other client already saw the delete. A `createItem` that changes nothing means the id already exists and

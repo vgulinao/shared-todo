@@ -90,7 +90,7 @@ function parseItem(raw: unknown): Item | null {
     title === null ||
     !isNullableString(raw.description) ||
     typeof raw.done !== "boolean" ||
-    !isNullableFinite(raw.cost) ||
+    !isNullableCost(raw.cost) ||
     !isFinite(raw.position)
   ) {
     return null;
@@ -123,7 +123,7 @@ function parsePatch(raw: unknown): ItemPatch | null {
     patch.done = raw.done;
   }
   if ("cost" in raw) {
-    if (!isNullableFinite(raw.cost)) return null;
+    if (!isNullableCost(raw.cost)) return null;
     patch.cost = raw.cost;
   }
   return patch;
@@ -141,6 +141,7 @@ function isNullableString(v: unknown): v is string | null {
 function isFinite(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
 }
-function isNullableFinite(v: unknown): v is number | null {
-  return v === null || isFinite(v);
+/** A cost is absent (null) or a non-negative finite number. */
+function isNullableCost(v: unknown): v is number | null {
+  return v === null || (isFinite(v) && v >= 0);
 }

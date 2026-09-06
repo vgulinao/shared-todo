@@ -458,3 +458,38 @@ describe("S7 sub-tasks", () => {
     again.socket.close();
   });
 });
+
+describe("S8 cost", () => {
+  it("AC1/AC2 a cost round-trips through the database and null clears it", async () => {
+    const { editToken } = await createList();
+    const a = uid();
+    const client = connect(editToken);
+    await client.next();
+    client.send({ ...base, opId: "op-1", kind: "createItem", item: item({ id: a, position: 1 }) });
+    client.send({ ...base, opId: "op-2", kind: "updateItem", id: a, patch: { cost: 12.5 } });
+    await client.next();
+    await client.next();
+    client.socket.close();
+
+    const withCost = connect(editToken);
+    const first = await withCost.next();
+    if (first.type === "snapshot") expect(first.items[0]?.cost).toBe(12.5);
+    withCost.send({ ...base, opId: "op-3", kind: "updateItem", id: a, patch: { cost: null } });
+    await withCost.next();
+    withCost.socket.close();
+
+    const cleared = connect(editToken);
+    const second = await cleared.next();
+    if (second.type === "snapshot") expect(second.items[0]?.cost).toBeNull();
+    cleared.socket.close();
+  });
+
+  it("AC3 a negative cost is rejected by the server", async () => {
+    const { editToken } = await createList();
+    const client = connect(editToken);
+    await client.next();
+    client.send({ ...base, opId: "op-1", kind: "updateItem", id: uid(), patch: { cost: -5 } });
+    expect(await client.next()).toMatchObject({ type: "rejected", reason: "invalid patch" });
+    client.socket.close();
+  });
+});

@@ -17,6 +17,8 @@ import {
 } from "@dnd-kit/sortable";
 import { childrenOf } from "../../../shared/apply.ts";
 import { planMove } from "../../../shared/order.ts";
+import { totalOf } from "../../../shared/cost.ts";
+import { formatCost } from "../lib/format.ts";
 import type { Item } from "../../../shared/types.ts";
 import { useList } from "../lib/useList.ts";
 import { createItem, moveItem, renameList } from "../lib/ops.ts";
@@ -69,6 +71,7 @@ export function ListPage({ token }: { token: string }) {
   const topLevel = childrenOf(state.items, null);
   const pending = topLevel.filter((item) => !item.done);
   const done = topLevel.filter((item) => item.done);
+  const total = totalOf(state.items);
 
   /** Items reorder among their siblings only: top-level pending items, or one parent's sub-tasks. */
   function onDragEnd({ active, over }: DragEndEvent) {
@@ -171,6 +174,12 @@ export function ListPage({ token }: { token: string }) {
             </section>
           )}
         </>
+      )}
+
+      {total !== null && (
+        <p className="total">
+          Total <strong>{formatCost(total)}</strong>
+        </p>
       )}
 
       {visibleError && <p className="error">{visibleError}</p>}
