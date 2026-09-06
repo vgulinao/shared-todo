@@ -17,7 +17,7 @@ There are no accounts. The link is the identity and the permission.
 | S3  | Items persist across server restarts                         | done    |
 | S4  | Real-time collaboration between users                        | done    |
 | S5  | Share a list via unique link (view-only or edit)             | done    |
-| S6  | Reorder items via drag & drop                                | planned |
+| S6  | Reorder items via drag & drop                                | done    |
 | S7  | Sub-tasks with overall progress on the parent                | planned |
 | S8  | Cost per task or sub-task, with totals                       | planned |
 | S9  | Markdown descriptions rendered as rich text when not editing | planned |

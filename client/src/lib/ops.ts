@@ -44,3 +44,7 @@ export function deleteItem(id: string): Op {
 export function renameList(title: string): Op {
   return { ...stamp(), kind: "renameList", title };
 }
+
+export function moveItem(id: string, parentId: string | null, position: number): Op {
+  return { ...stamp(), kind: "moveItem", id, parentId, position };
+}

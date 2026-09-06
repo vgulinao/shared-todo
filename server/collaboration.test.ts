@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SyncClient, type ListState } from "../client/src/lib/SyncClient.ts";
+import { childrenOf } from "../shared/apply.ts";
+import { planMove } from "../shared/order.ts";
 import type { ItemPatch, Op } from "../shared/protocol.ts";
 import { buildApp } from "./app.ts";
 import { Db } from "./db.ts";
@@ -111,6 +113,13 @@ const updateOp = (id: string, patch: ItemPatch): Op => ({
   patch,
 });
 const deleteOp = (id: string): Op => ({ ...stamp(), kind: "deleteItem", id });
+const moveOp = (id: string, position: number): Op => ({
+  ...stamp(),
+  kind: "moveItem",
+  id,
+  parentId: null,
+  position,
+});
 
 async function twoClients() {
   const { editToken } = await createList(server!.app);
@@ -244,5 +253,42 @@ describe("S5 share link (client engine)", () => {
     // The op must have left the queue before the snapshot, or the replay would re-apply it.
     expect(viewer.pendingCount).toBe(0);
     expect(editor.state.items.size).toBe(0);
+  });
+});
+
+describe("S6 reorder (client engine)", () => {
+  const order = (c: Client) => childrenOf(c.state.items, null).map((i) => i.title);
+
+  async function threeItems() {
+    const { a, b } = await twoClients();
+    const ids = { x: uid(), y: uid(), z: uid() };
+    a.dispatch(createOp(ids.x, "x", 1));
+    a.dispatch(createOp(ids.y, "y", 2));
+    a.dispatch(createOp(ids.z, "z", 3));
+    await until(() => b.state.items.size === 3 && a.pendingCount === 0, "three items on both");
+    return { a, b, ids };
+  }
+
+  it("AC4 concurrent moves of different items converge to the same order on both clients", async () => {
+    const { a, b, ids } = await threeItems();
+    const siblings = childrenOf(a.state.items, null);
+    for (const p of planMove(siblings, ids.z, 0)) a.dispatch(moveOp(p.id, p.position)); // z to top
+    for (const p of planMove(siblings, ids.x, 2)) b.dispatch(moveOp(p.id, p.position)); // x to bottom
+    await until(() => a.pendingCount === 0 && b.pendingCount === 0, "both acked");
+    expect(order(a)).toEqual(["z", "y", "x"]);
+    expect(order(b)).toEqual(["z", "y", "x"]);
+  });
+
+  it("AC4 concurrent moves of the same item converge to the same order on both clients", async () => {
+    const { a, b, ids } = await threeItems();
+    const siblings = childrenOf(a.state.items, null);
+    for (const p of planMove(siblings, ids.y, 0)) a.dispatch(moveOp(p.id, p.position)); // y to top
+    for (const p of planMove(siblings, ids.y, 2)) b.dispatch(moveOp(p.id, p.position)); // y to bottom
+    await until(() => a.pendingCount === 0 && b.pendingCount === 0, "both acked");
+    expect(order(a)).toEqual(order(b));
+    expect([
+      ["y", "x", "z"],
+      ["x", "z", "y"],
+    ]).toContainEqual(order(a));
   });
 });

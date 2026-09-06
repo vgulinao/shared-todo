@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { normalizeTitle } from "../../../shared/protocol.ts";
 import type { Item } from "../../../shared/types.ts";
 
-type Props = {
+export type ItemRowProps = {
   item: Item;
   editable: boolean;
   onToggleDone: (done: boolean) => void;
   onRename: (title: string) => void;
   onDelete: () => void;
+  /** Set by SortableItemRow when the row can be dragged. */
+  handle?: ReactNode;
+  rowRef?: (element: HTMLLIElement | null) => void;
+  style?: CSSProperties;
+  dragging?: boolean;
 };
 
-export function ItemRow({ item, editable, onToggleDone, onRename, onDelete }: Props) {
+export function ItemRow({
+  item,
+  editable,
+  onToggleDone,
+  onRename,
+  onDelete,
+  handle,
+  rowRef,
+  style,
+  dragging = false,
+}: ItemRowProps) {
   const [draft, setDraft] = useState<string | null>(null);
 
   function save() {
@@ -19,8 +34,11 @@ export function ItemRow({ item, editable, onToggleDone, onRename, onDelete }: Pr
     setDraft(null);
   }
 
+  const className = ["item", item.done && "done", dragging && "dragging"].filter(Boolean).join(" ");
+
   return (
-    <li className={item.done ? "item done" : "item"}>
+    <li ref={rowRef} style={style} className={className}>
+      {handle}
       <input
         type="checkbox"
         className="item-check"
