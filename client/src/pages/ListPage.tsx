@@ -19,10 +19,9 @@ import { childrenOf } from "../../../shared/apply.ts";
 import { planMove } from "../../../shared/order.ts";
 import type { Item } from "../../../shared/types.ts";
 import { useList } from "../lib/useList.ts";
-import { createItem, deleteItem, moveItem, renameList, updateItem } from "../lib/ops.ts";
+import { createItem, moveItem, renameList } from "../lib/ops.ts";
 import { AddItem } from "../components/AddItem.tsx";
-import { ItemRow } from "../components/ItemRow.tsx";
-import { SortableItemRow } from "../components/SortableItemRow.tsx";
+import { ItemGroup } from "../components/ItemGroup.tsx";
 import { ListTitle } from "../components/ListTitle.tsx";
 import { ShareLinks } from "../components/ShareLinks.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -67,25 +66,22 @@ export function ListPage({ token }: { token: string }) {
   }
 
   const editable = state.list.role === "edit";
-  const items = childrenOf(state.items, null);
-  const pending = items.filter((item) => !item.done);
-  const done = items.filter((item) => item.done);
+  const topLevel = childrenOf(state.items, null);
+  const pending = topLevel.filter((item) => !item.done);
+  const done = topLevel.filter((item) => item.done);
 
+  /** Items reorder among their siblings only: top-level pending items, or one parent's sub-tasks. */
   function onDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
-    const toIndex = pending.findIndex((item) => item.id === over.id);
-    for (const { id, position } of planMove(pending, String(active.id), toIndex)) {
-      dispatch(moveItem(id, null, position));
+    const moved = state.items.get(String(active.id));
+    const target = state.items.get(String(over.id));
+    if (!moved || !target || moved.parentId !== target.parentId) return;
+    const siblings = moved.parentId === null ? pending : childrenOf(state.items, moved.parentId);
+    const toIndex = siblings.findIndex((item) => item.id === target.id);
+    for (const { id, position } of planMove(siblings, moved.id, toIndex)) {
+      dispatch(moveItem(id, moved.parentId, position));
     }
   }
-
-  const rowProps = (item: Item) => ({
-    item,
-    editable,
-    onToggleDone: (value: boolean) => dispatch(updateItem(item.id, { done: value })),
-    onRename: (text: string) => dispatch(updateItem(item.id, { title: text })),
-    onDelete: () => dispatch(deleteItem(item.id)),
-  });
 
   // Screen-reader announcements name the item instead of dnd-kit's default, which reads out the id.
   const titleOf = (id: unknown) => state.items.get(String(id))?.title ?? "item";
@@ -98,6 +94,17 @@ export function ListPage({ token }: { token: string }) {
         : `Dropped ${titleOf(active.id)}.`,
     onDragCancel: ({ active }) => `Cancelled moving ${titleOf(active.id)}.`,
   };
+
+  const group = (item: Item, sortable: boolean) => (
+    <ItemGroup
+      key={item.id}
+      parent={item}
+      items={state.items}
+      editable={editable}
+      sortable={sortable}
+      dispatch={dispatch}
+    />
+  );
 
   return (
     <main className="app">
@@ -126,7 +133,7 @@ export function ListPage({ token }: { token: string }) {
 
       {editable && <AddItem onAdd={(text) => dispatch(createItem(state.items, text))} />}
 
-      {items.length === 0 ? (
+      {topLevel.length === 0 ? (
         <p className="muted empty">
           {editable ? "Nothing here yet. Add your first item above." : "Nothing here yet."}
         </p>
@@ -144,19 +151,11 @@ export function ListPage({ token }: { token: string }) {
                   items={pending.map((i) => i.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <ul className="items">
-                    {pending.map((item) => (
-                      <SortableItemRow key={item.id} {...rowProps(item)} />
-                    ))}
-                  </ul>
+                  <ul className="items">{pending.map((item) => group(item, true))}</ul>
                 </SortableContext>
               </DndContext>
             ) : (
-              <ul className="items">
-                {pending.map((item) => (
-                  <ItemRow key={item.id} {...rowProps(item)} />
-                ))}
-              </ul>
+              <ul className="items">{pending.map((item) => group(item, false))}</ul>
             ))}
           {done.length > 0 && (
             <section className="completed">
@@ -168,13 +167,7 @@ export function ListPage({ token }: { token: string }) {
                 <span className="chevron">{showDone ? "▾" : "▸"}</span>
                 Completed · {done.length}
               </button>
-              {showDone && (
-                <ul className="items">
-                  {done.map((item) => (
-                    <ItemRow key={item.id} {...rowProps(item)} />
-                  ))}
-                </ul>
-              )}
+              {showDone && <ul className="items">{done.map((item) => group(item, false))}</ul>}
             </section>
           )}
         </>

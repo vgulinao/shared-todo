@@ -420,3 +420,41 @@ describe("S6 reorder", () => {
     again.socket.close();
   });
 });
+
+describe("S7 sub-tasks", () => {
+  it("AC1/AC3 a sub-task reaches the peer and the snapshot keeps it under its parent", async () => {
+    const { editToken } = await createList();
+    const parent = uid();
+    const child = uid();
+    const editor = connect(editToken);
+    const peer = connect(editToken);
+    await editor.next();
+    await peer.next();
+    editor.send({
+      ...base,
+      opId: "op-1",
+      kind: "createItem",
+      item: item({ id: parent, position: 1 }),
+    });
+    await peer.next();
+    editor.send({
+      ...base,
+      opId: "op-2",
+      kind: "createItem",
+      item: item({ id: child, position: 1, parentId: parent }),
+    });
+    expect(await peer.next()).toMatchObject({
+      type: "op",
+      op: { kind: "createItem", item: { id: child, parentId: parent } },
+    });
+    editor.socket.close();
+    peer.socket.close();
+
+    const again = connect(editToken);
+    const snapshot = await again.next();
+    if (snapshot.type === "snapshot") {
+      expect(snapshot.items.find((i) => i.id === child)?.parentId).toBe(parent);
+    }
+    again.socket.close();
+  });
+});

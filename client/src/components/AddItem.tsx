@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { normalizeTitle } from "../../../shared/protocol.ts";
 
-export function AddItem({ onAdd }: { onAdd: (title: string) => void }) {
+type Props = {
+  onAdd: (title: string) => void;
+  placeholder?: string;
+  /** Escape on an empty draft; used to close the inline sub-task input. */
+  onCancel?: () => void;
+  className?: string;
+};
+
+export function AddItem({ onAdd, placeholder = "Add an item", onCancel, className }: Props) {
   const [draft, setDraft] = useState("");
 
   function submit() {
@@ -13,15 +21,19 @@ export function AddItem({ onAdd }: { onAdd: (title: string) => void }) {
 
   return (
     <input
-      className="add-item"
+      className={className ?? "add-item"}
       type="text"
-      placeholder="Add an item"
-      aria-label="Add an item"
+      placeholder={placeholder}
+      aria-label={placeholder}
       autoFocus
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") submit();
+        if (e.key === "Escape") {
+          if (draft === "") onCancel?.();
+          else setDraft("");
+        }
       }}
     />
   );

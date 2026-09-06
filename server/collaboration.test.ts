@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SyncClient, type ListState } from "../client/src/lib/SyncClient.ts";
 import { childrenOf, nextPosition } from "../shared/apply.ts";
 import { planMove } from "../shared/order.ts";
+import { idsToToggle, progressOf } from "../shared/subtasks.ts";
 import type { ItemPatch, Op } from "../shared/protocol.ts";
 import { buildApp } from "./app.ts";
 import { Db } from "./db.ts";
@@ -316,5 +317,53 @@ describe("S6 reorder — concurrent creates", () => {
     const fresh = connect(editToken);
     await until(() => fresh.state.items.size === 3, "fresh snapshot from the database");
     expect(order(fresh)).toEqual(order(a));
+  });
+});
+
+describe("S7 sub-tasks (client engine)", () => {
+  it("AC5 deleting a parent removes its sub-tasks on every client", async () => {
+    const { a, b } = await twoClients();
+    const parent = uid();
+    const child = uid();
+    a.dispatch(createOp(parent, "trip", 1));
+    a.dispatch({
+      ...stamp(),
+      kind: "createItem",
+      item: item({ id: child, title: "passport", position: 1, parentId: parent }),
+    });
+    await until(() => b.state.items.has(child), "sub-task on B");
+    a.dispatch(deleteOp(parent));
+    await until(
+      () => !b.state.items.has(parent) && !b.state.items.has(child),
+      "parent and child gone on B",
+    );
+    expect(a.state.items.size).toBe(0);
+  });
+
+  it("AC4 ticking a parent cascades to its open sub-tasks as ordinary ops", async () => {
+    const { a, b } = await twoClients();
+    const parent = uid();
+    const open = uid();
+    const alreadyDone = uid();
+    a.dispatch(createOp(parent, "trip", 1));
+    a.dispatch({
+      ...stamp(),
+      kind: "createItem",
+      item: item({ id: open, title: "passport", position: 1, parentId: parent }),
+    });
+    a.dispatch({
+      ...stamp(),
+      kind: "createItem",
+      item: item({ id: alreadyDone, title: "tickets", position: 2, parentId: parent, done: true }),
+    });
+    await until(() => b.state.items.size === 3, "group on B");
+
+    for (const id of idsToToggle(a.state.items, parent, true, true))
+      a.dispatch(updateOp(id, { done: true }));
+    await until(
+      () => [parent, open, alreadyDone].every((id) => b.state.items.get(id)?.done === true),
+      "all done on B",
+    );
+    expect(progressOf(childrenOf(b.state.items, parent))).toEqual({ done: 2, total: 2 });
   });
 });

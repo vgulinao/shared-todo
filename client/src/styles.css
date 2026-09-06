@@ -118,11 +118,14 @@ input {
 }
 
 .item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
 }
 .item:last-child {
   border-bottom: none;
@@ -154,7 +157,7 @@ button.item-title:hover {
   border-radius: 4px;
   opacity: 0;
 }
-.item:hover .item-delete,
+.row:hover .item-delete,
 .item-delete:focus {
   opacity: 1;
 }
@@ -296,7 +299,7 @@ span.item-title {
   touch-action: none;
   flex-shrink: 0;
 }
-.item:hover .drag-handle,
+.row:hover .drag-handle,
 .drag-handle:focus-visible {
   opacity: 1;
 }
@@ -310,4 +313,68 @@ span.item-title {
   background: var(--color-surface);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   border-radius: var(--radius);
+}
+
+/* Sub-tasks (S7) */
+.collapse {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.collapse:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.add-subtask {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+}
+.row:hover .add-subtask,
+.add-subtask:focus-visible {
+  opacity: 1;
+}
+.add-subtask:hover {
+  background: var(--color-bg);
+  color: var(--color-accent);
+}
+
+.progress-bar {
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 0.75rem;
+}
+.progress-bar > div {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 150ms ease-out;
+}
+
+.subtasks {
+  padding: 0.25rem 0.5rem 0.5rem 2.25rem;
+}
+.subtask-list {
+  border: none;
+  background: none;
+}
+.subtask-list .item {
+  border-bottom: none;
+}
+.subtask-list .row {
+  padding: 0.3rem 0.25rem;
+  font-size: 0.95rem;
+}
+.add-item-sub {
+  margin: 0.25rem 0 0;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
 }
