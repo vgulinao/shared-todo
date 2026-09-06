@@ -100,3 +100,17 @@ and a way for an operation received by one instance to reach clients connected t
 more than a take-home needs. A deploy causes a few seconds of downtime while the new container starts;
 clients reconnect automatically and resend anything unconfirmed. The scale-out path is known and does
 not change the protocol, only where the state and the fan-out live.
+
+## D11 — `@dnd-kit` for drag & drop mechanics; ordering logic stays ours
+
+**Context.** S6 needs pointer, touch, and keyboard drag with screen-reader announcements. The brief
+forbids libraries that solve the core challenge; ordering under concurrent edits is part of that core.
+**Decision.** `@dnd-kit/core` + `@dnd-kit/sortable` for the interaction layer only: sensors, collision
+detection, transforms, focus management, announcements. Everything that decides _what to send_ is
+ours in `shared/order.ts` (`positionBetween`, `planMove`) with its own tests. The library never sees
+positions; it reports "X was dropped on Y's spot" and we compute the rest.
+**Not chosen.** Hand-rolled pointer events (a week of accessibility work to reach parity, and not the
+skill under test), `react-beautiful-dnd` (unmaintained), the HTML5 drag-and-drop API (poor touch and
+keyboard support).
+**Cost.** Three runtime dependencies, about 18 kB gzipped added to the bundle, React-coupled. If the
+library were removed, `shared/order.ts` and its tests would not change.

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SyncClient, type ListState } from "../client/src/lib/SyncClient.ts";
-import { childrenOf } from "../shared/apply.ts";
+import { childrenOf, nextPosition } from "../shared/apply.ts";
 import { planMove } from "../shared/order.ts";
 import type { ItemPatch, Op } from "../shared/protocol.ts";
 import { buildApp } from "./app.ts";
@@ -290,5 +290,31 @@ describe("S6 reorder (client engine)", () => {
       ["y", "x", "z"],
       ["x", "z", "y"],
     ]).toContainEqual(order(a));
+  });
+});
+
+describe("S6 reorder — concurrent creates", () => {
+  it("AC4 two clients adding at the same time (tied positions) see the same order", async () => {
+    const { a, b, editToken } = await twoClients();
+    const seed = uid();
+    a.dispatch(createOp(seed, "seed", 1));
+    await until(() => b.state.items.has(seed), "seed on both");
+
+    // Both compute nextPosition from the same state, so both pick 2, and each applies its own first.
+    a.dispatch(createOp(uid(), "apples", nextPosition(a.state.items, null)));
+    b.dispatch(createOp(uid(), "bread", nextPosition(b.state.items, null)));
+    await until(
+      () =>
+        a.state.items.size === 3 &&
+        b.state.items.size === 3 &&
+        a.pendingCount + b.pendingCount === 0,
+      "both see three items, all acked",
+    );
+    const order = (c: Client) => childrenOf(c.state.items, null).map((i) => i.id);
+    expect(order(a)).toEqual(order(b));
+
+    const fresh = connect(editToken);
+    await until(() => fresh.state.items.size === 3, "fresh snapshot from the database");
+    expect(order(fresh)).toEqual(order(a));
   });
 });
