@@ -1,10 +1,27 @@
 import { useEffect, useState } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { childrenOf } from "../../../shared/apply.ts";
+import { planMove } from "../../../shared/order.ts";
 import type { Item } from "../../../shared/types.ts";
 import { useList } from "../lib/useList.ts";
-import { createItem, deleteItem, renameList, updateItem } from "../lib/ops.ts";
+import { createItem, deleteItem, moveItem, renameList, updateItem } from "../lib/ops.ts";
 import { AddItem } from "../components/AddItem.tsx";
 import { ItemRow } from "../components/ItemRow.tsx";
+import { SortableItemRow } from "../components/SortableItemRow.tsx";
 import { ListTitle } from "../components/ListTitle.tsx";
 import { ShareLinks } from "../components/ShareLinks.tsx";
 import { NotFound } from "./NotFound.tsx";
@@ -31,6 +48,14 @@ export function ListPage({ token }: { token: string }) {
   }, [state.error]);
   const visibleError = state.error !== dismissedError ? state.error : null;
 
+  // Drag starts after a small pointer movement (so clicks still click) or a short touch hold (so the
+  // page still scrolls). Keyboard: Space to pick up, arrows to move, Space to drop.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   if (state.status === "not-found") return <NotFound />;
   if (!state.list) {
     return (
@@ -45,16 +70,35 @@ export function ListPage({ token }: { token: string }) {
   const pending = items.filter((item) => !item.done);
   const done = items.filter((item) => item.done);
 
-  const row = (item: Item) => (
-    <ItemRow
-      key={item.id}
-      item={item}
-      editable={editable}
-      onToggleDone={(value) => dispatch(updateItem(item.id, { done: value }))}
-      onRename={(text) => dispatch(updateItem(item.id, { title: text }))}
-      onDelete={() => dispatch(deleteItem(item.id))}
-    />
-  );
+  function onDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const toIndex = pending.findIndex((item) => item.id === over.id);
+    for (const { id, position } of planMove(pending, String(active.id), toIndex)) {
+      dispatch(moveItem(id, null, position));
+    }
+  }
+
+  const rowProps = (item: Item) => ({
+    item,
+    editable,
+    onToggleDone: (value: boolean) => dispatch(updateItem(item.id, { done: value })),
+    onRename: (text: string) => dispatch(updateItem(item.id, { title: text })),
+    onDelete: () => dispatch(deleteItem(item.id)),
+  });
+
+  // Screen-reader announcements name the item instead of dnd-kit's default, which reads out the id.
+  const titleOf = (id: unknown) => state.items.get(String(id))?.title ?? "item";
+  const announcements = {
+    onDragStart: ({ active }: { active: { id: unknown } }) => `Picked up ${titleOf(active.id)}.`,
+    onDragOver: ({ over }: { over: { id: unknown } | null }) =>
+      over ? `Over ${titleOf(over.id)}.` : "No longer over an item.",
+    onDragEnd: ({ active, over }: { active: { id: unknown }; over: { id: unknown } | null }) =>
+      over
+        ? `Moved ${titleOf(active.id)} to the spot of ${titleOf(over.id)}.`
+        : `Dropped ${titleOf(active.id)}.`,
+    onDragCancel: ({ active }: { active: { id: unknown } }) =>
+      `Cancelled moving ${titleOf(active.id)}.`,
+  };
 
   return (
     <main className="app">
@@ -89,7 +133,32 @@ export function ListPage({ token }: { token: string }) {
         </p>
       ) : (
         <>
-          {pending.length > 0 && <ul className="items">{pending.map(row)}</ul>}
+          {pending.length > 0 &&
+            (editable ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={onDragEnd}
+                accessibility={{ announcements }}
+              >
+                <SortableContext
+                  items={pending.map((i) => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <ul className="items">
+                    {pending.map((item) => (
+                      <SortableItemRow key={item.id} {...rowProps(item)} />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <ul className="items">
+                {pending.map((item) => (
+                  <ItemRow key={item.id} {...rowProps(item)} />
+                ))}
+              </ul>
+            ))}
           {done.length > 0 && (
             <section className="completed">
               <button
@@ -100,7 +169,13 @@ export function ListPage({ token }: { token: string }) {
                 <span className="chevron">{showDone ? "▾" : "▸"}</span>
                 Completed · {done.length}
               </button>
-              {showDone && <ul className="items">{done.map(row)}</ul>}
+              {showDone && (
+                <ul className="items">
+                  {done.map((item) => (
+                    <ItemRow key={item.id} {...rowProps(item)} />
+                  ))}
+                </ul>
+              )}
             </section>
           )}
         </>

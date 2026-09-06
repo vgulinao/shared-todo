@@ -391,3 +391,32 @@ describe("S5 share link", () => {
     again.socket.close();
   });
 });
+
+describe("S6 reorder", () => {
+  it("AC1/AC2 a moveItem reaches the peer and the new order survives a reconnect", async () => {
+    const { editToken } = await createList();
+    const [a, b, c] = [uid(), uid(), uid()];
+    const mover = connect(editToken);
+    const peer = connect(editToken);
+    await mover.next();
+    await peer.next();
+    mover.send({ ...base, opId: "op-1", kind: "createItem", item: item({ id: a, position: 1 }) });
+    mover.send({ ...base, opId: "op-2", kind: "createItem", item: item({ id: b, position: 2 }) });
+    mover.send({ ...base, opId: "op-3", kind: "createItem", item: item({ id: c, position: 3 }) });
+    for (let i = 0; i < 3; i++) await peer.next();
+    for (let i = 0; i < 3; i++) await mover.next();
+
+    mover.send({ ...base, opId: "op-4", kind: "moveItem", id: c, parentId: null, position: 0.5 });
+    expect(await peer.next()).toMatchObject({
+      type: "op",
+      op: { kind: "moveItem", id: c, position: 0.5 },
+    });
+    mover.socket.close();
+    peer.socket.close();
+
+    const again = connect(editToken);
+    const snapshot = await again.next();
+    if (snapshot.type === "snapshot") expect(snapshot.items.map((i) => i.id)).toEqual([c, a, b]);
+    again.socket.close();
+  });
+});

@@ -283,3 +283,31 @@ button.item-title:hover {
 span.item-title {
   padding: 0.15rem 0.25rem;
 }
+
+.drag-handle {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  letter-spacing: -0.15em;
+  padding: 0.2rem 0.15rem;
+  margin-left: -0.25rem;
+  border-radius: 4px;
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.item:hover .drag-handle,
+.drag-handle:focus-visible {
+  opacity: 1;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.item.dragging {
+  position: relative;
+  z-index: 1;
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius);
+}
