@@ -8,6 +8,10 @@ export type ItemRowProps = {
   onToggleDone: (done: boolean) => void;
   onRename: (title: string) => void;
   onDelete: () => void;
+  /** Controls rendered between the title and delete (progress, collapse, add sub-task). */
+  extras?: ReactNode;
+  /** Nested content under the row, e.g. the sub-task list. Moves with the row when dragged. */
+  children?: ReactNode;
   /** Set by SortableItemRow when the row can be dragged. */
   handle?: ReactNode;
   rowRef?: (element: HTMLLIElement | null) => void;
@@ -21,6 +25,8 @@ export function ItemRow({
   onToggleDone,
   onRename,
   onDelete,
+  extras,
+  children,
   handle,
   rowRef,
   style,
@@ -38,39 +44,43 @@ export function ItemRow({
 
   return (
     <li ref={rowRef} style={style} className={className}>
-      {handle}
-      <input
-        type="checkbox"
-        className="item-check"
-        checked={item.done}
-        disabled={!editable}
-        aria-label={`Mark ${item.title} as ${item.done ? "not done" : "done"}`}
-        onChange={(e) => onToggleDone(e.target.checked)}
-      />
-      {!editable ? (
-        <span className="item-title">{item.title}</span>
-      ) : draft === null ? (
-        <button className="item-title" onClick={() => setDraft(item.title)}>
-          {item.title}
-        </button>
-      ) : (
+      <div className="row">
+        {handle}
         <input
-          className="item-edit"
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") save();
-            if (e.key === "Escape") setDraft(null);
-          }}
+          type="checkbox"
+          className="item-check"
+          checked={item.done}
+          disabled={!editable}
+          aria-label={`Mark ${item.title} as ${item.done ? "not done" : "done"}`}
+          onChange={(e) => onToggleDone(e.target.checked)}
         />
-      )}
-      {editable && (
-        <button className="item-delete" aria-label={`Delete ${item.title}`} onClick={onDelete}>
-          ×
-        </button>
-      )}
+        {!editable ? (
+          <span className="item-title">{item.title}</span>
+        ) : draft === null ? (
+          <button className="item-title" onClick={() => setDraft(item.title)}>
+            {item.title}
+          </button>
+        ) : (
+          <input
+            className="item-edit"
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={save}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") save();
+              if (e.key === "Escape") setDraft(null);
+            }}
+          />
+        )}
+        {extras}
+        {editable && (
+          <button className="item-delete" aria-label={`Delete ${item.title}`} onClick={onDelete}>
+            ×
+          </button>
+        )}
+      </div>
+      {children}
     </li>
   );
 }
