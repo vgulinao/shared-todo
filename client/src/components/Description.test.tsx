@@ -9,8 +9,8 @@ function render(text: string): string {
     createElement(Description, {
       text,
       editable: false,
-      editing: false,
-      onEditingChange: () => {},
+      draft: null,
+      onDraftChange: () => {},
       onChange: () => {},
     }),
   );
@@ -41,5 +41,13 @@ describe("S9 markdown descriptions", () => {
   it("AC5 javascript: links are not rendered as links", () => {
     const html = render("[x](javascript:alert(1))");
     expect(html).not.toContain('href="javascript:');
+  });
+});
+
+describe("S9 markdown descriptions — images", () => {
+  it("AC5 a Markdown image renders as its alt text, never as an <img>", () => {
+    const html = render("![tracking pixel](https://tracker.example/p.gif)");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("tracking pixel");
   });
 });

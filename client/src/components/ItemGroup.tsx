@@ -12,20 +12,31 @@ import { AddItem } from "./AddItem.tsx";
 import { ItemRow, type ItemRowProps } from "./ItemRow.tsx";
 import { SortableItemRow } from "./SortableItemRow.tsx";
 
+export type NotesDraft = { id: string; text: string };
+
 type Props = {
   parent: Item;
   items: Items;
   editable: boolean;
   /** Draggable rows inside the page's DndContext (pending list), or plain rows (Completed, view-only). */
   sortable: boolean;
+  notesDraft: NotesDraft | null;
+  onNotesDraft: (draft: NotesDraft | null) => void;
   dispatch: (op: Op) => void;
 };
 
 /** A top-level item with its sub-tasks: progress, collapse, inline "add sub-task", nested list. */
-export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props) {
+export function ItemGroup({
+  parent,
+  items,
+  editable,
+  sortable,
+  notesDraft,
+  onNotesDraft,
+  dispatch,
+}: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [notesEditing, setNotesEditing] = useState<string | null>(null);
   const children = childrenOf(items, parent.id);
   const progress = progressOf(children);
   const Row = sortable ? SortableItemRow : ItemRow;
@@ -53,23 +64,22 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
   );
 
   const notesButton = (item: Item) =>
-    editable && item.description === null && notesEditing !== item.id ? (
+    editable && notesDraft?.id !== item.id ? (
       <button
         className="add-notes"
-        aria-label={`Add notes to ${item.title}`}
-        onClick={() => setNotesEditing(item.id)}
+        aria-label={`${item.description === null ? "Add" : "Edit"} notes for ${item.title}`}
+        onClick={() => onNotesDraft({ id: item.id, text: item.description ?? "" })}
       >
-        + notes
+        {item.description === null ? "+ notes" : "notes"}
       </button>
     ) : null;
 
   const description = (item: Item) => (
     <Description
-      key={notesEditing === item.id ? "editing" : "idle"}
       text={item.description}
       editable={editable}
-      editing={notesEditing === item.id}
-      onEditingChange={(on) => setNotesEditing(on ? item.id : null)}
+      draft={notesDraft?.id === item.id ? notesDraft.text : null}
+      onDraftChange={(text) => onNotesDraft(text === null ? null : { id: item.id, text })}
       onChange={(text) => dispatch(updateItem(item.id, { description: text }))}
     />
   );

@@ -469,12 +469,6 @@ button.cost:hover {
   font-size: 0.9rem;
   line-height: 1.45;
 }
-button.description {
-  border-radius: 4px;
-}
-button.description:hover {
-  color: var(--color-text);
-}
 .description > :first-child {
   margin-top: 0;
 }
@@ -528,6 +522,9 @@ button.description:hover {
 }
 .subtask-list .description {
   padding-left: 2.6rem;
+}
+.subtask-list .notes-edit {
+  margin-left: 2.6rem;
 }
 
 .notes-edit {
