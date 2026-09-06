@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SyncClient, type ListState } from "../client/src/lib/SyncClient.ts";
 import { childrenOf, nextPosition } from "../shared/apply.ts";
 import { planMove } from "../shared/order.ts";
-import { idsToCompleteWith, progressOf } from "../shared/subtasks.ts";
+import { idsToToggle, progressOf } from "../shared/subtasks.ts";
 import type { ItemPatch, Op } from "../shared/protocol.ts";
 import { buildApp } from "./app.ts";
 import { Db } from "./db.ts";
@@ -358,12 +358,12 @@ describe("S7 sub-tasks (client engine)", () => {
     });
     await until(() => b.state.items.size === 3, "group on B");
 
-    for (const id of idsToCompleteWith(a.state.items, parent))
+    for (const id of idsToToggle(a.state.items, parent, true, true))
       a.dispatch(updateOp(id, { done: true }));
     await until(
       () => [parent, open, alreadyDone].every((id) => b.state.items.get(id)?.done === true),
       "all done on B",
     );
-    expect(progressOf(b.state.items, parent)).toEqual({ done: 2, total: 2 });
+    expect(progressOf(childrenOf(b.state.items, parent))).toEqual({ done: 2, total: 2 });
   });
 });

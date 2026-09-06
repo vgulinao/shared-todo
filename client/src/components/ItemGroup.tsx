@@ -2,9 +2,8 @@ import { useState } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Op } from "../../../shared/protocol.ts";
 import type { Item } from "../../../shared/types.ts";
-import type { Items } from "../../../shared/apply.ts";
-import { childrenOf } from "../../../shared/apply.ts";
-import { idsToCompleteWith, progressOf } from "../../../shared/subtasks.ts";
+import { childrenOf, type Items } from "../../../shared/apply.ts";
+import { idsToToggle, progressOf } from "../../../shared/subtasks.ts";
 import { createItem, deleteItem, updateItem } from "../lib/ops.ts";
 import { AddItem } from "./AddItem.tsx";
 import { ItemRow, type ItemRowProps } from "./ItemRow.tsx";
@@ -14,7 +13,7 @@ type Props = {
   parent: Item;
   items: Items;
   editable: boolean;
-  /** Draggable rows (pending list) or plain rows (Completed section). */
+  /** Draggable rows inside the page's DndContext (pending list), or plain rows (Completed, view-only). */
   sortable: boolean;
   dispatch: (op: Op) => void;
 };
@@ -24,16 +23,16 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
   const children = childrenOf(items, parent.id);
-  const progress = progressOf(items, parent.id);
+  const progress = progressOf(children);
   const Row = sortable ? SortableItemRow : ItemRow;
 
   const rowProps = (item: Item, isParent: boolean): ItemRowProps => ({
     item,
     editable,
     onToggleDone: (done) => {
-      // Ticking a parent ticks its open sub-tasks too: ordinary ops, one per item (spec S7 AC4).
-      const ids = isParent && done ? idsToCompleteWith(items, item.id) : [item.id];
-      for (const id of ids) dispatch(updateItem(id, { done }));
+      for (const id of idsToToggle(items, item.id, done, isParent)) {
+        dispatch(updateItem(id, { done }));
+      }
     },
     onRename: (title) => dispatch(updateItem(item.id, { title })),
     onDelete: () => dispatch(deleteItem(item.id)),
@@ -70,6 +69,7 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
   );
 
   const showChildren = !collapsed && (children.length > 0 || adding);
+  const childRows = children.map((child) => <Row key={child.id} {...rowProps(child, false)} />);
 
   return (
     <Row {...rowProps(parent, true)} extras={extras}>
@@ -80,19 +80,17 @@ export function ItemGroup({ parent, items, editable, sortable, dispatch }: Props
       )}
       {showChildren && (
         <div className="subtasks">
-          {children.length > 0 && (
-            <SortableContext
-              items={children.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-              disabled={!sortable}
-            >
-              <ul className="items subtask-list">
-                {children.map((child) => (
-                  <Row key={child.id} {...rowProps(child, false)} />
-                ))}
-              </ul>
-            </SortableContext>
-          )}
+          {children.length > 0 &&
+            (sortable ? (
+              <SortableContext
+                items={children.map((c) => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="items subtask-list">{childRows}</ul>
+              </SortableContext>
+            ) : (
+              <ul className="items subtask-list">{childRows}</ul>
+            ))}
           {adding && (
             <AddItem
               className="add-item add-item-sub"

@@ -27,13 +27,15 @@ how far along the group is.
 - **AC7** A sub-task cannot have sub-tasks: there is no "Add sub-task" on a sub-task, and the server
   rejects an attempt (already enforced since review round 1).
 - **AC8** Sub-tasks are collapsible per parent with a small chevron; collapsed state is component
-  state, not shared or persisted. A collapsed parent still shows its progress.
+  state, not shared or persisted. A collapsed parent still shows its progress. Ticking a parent moves
+  it to the Completed section, which remounts it expanded; the collapse is not remembered across that.
 
 ## UX notes
 
 - "Add sub-task" is a small control at the right of a top-level row, visible on hover and focus
   alongside delete. Choosing it opens an inline input under the item's existing sub-tasks; Enter
-  adds and keeps the input open for the next one, Escape closes it.
+  adds and keeps the input open for the next one. Escape clears a non-empty draft first and closes
+  the input on an empty one (two presses with text, one without), the same as the main input.
 - Progress reads "2 / 5" next to the title in muted text, with a 2px bar under the row. When
   everything is done the bar is full and the text stays; no confetti.
 - Indentation: one level, about 1.75rem. Sub-task rows are slightly smaller.
@@ -54,11 +56,11 @@ parent when its sub-tasks are all done, per-parent persisted collapse state, sub
 
 ## Test plan
 
-| AC           | Test                                                                                                                         | Where  |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------ |
-| AC2          | `progressOf(items, parentId)` → `{ done, total }` for none / some / all sub-tasks done                                       | shared |
-| AC4          | `completeWithChildren(items, parentId)` → one `done` patch per open child plus the parent, nothing for already-done children | shared |
-| AC1/AC3      | createItem with parentId over WS reaches the peer; snapshot lists the sub-task under its parent in position order            | server |
-| AC7          | createItem with a sub-task as parent → rejected (exists from round 1; referenced, not duplicated)                            | server |
-| AC5          | deleteItem on a parent removes children on a peer's state (engine)                                                           | server |
-| AC6, AC8, UI | By hand on the live URL, two windows                                                                                         | manual |
+| AC           | Test                                                                                                                                                        | Where  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| AC2          | `progressOf(items, parentId)` → `{ done, total }` for none / some / all sub-tasks done                                                                      | shared |
+| AC4          | `idsToToggle(items, id, done, isParent)`: ticking a parent → open sub-tasks then the parent; unticking a parent → the parent only; a sub-task → itself only |
+| AC1/AC3      | createItem with parentId over WS reaches the peer; snapshot lists the sub-task under its parent in position order                                           | server |
+| AC7          | createItem with a sub-task as parent → rejected (exists from round 1; referenced, not duplicated)                                                           | server |
+| AC5          | deleteItem on a parent removes children on a peer's state (engine)                                                                                          | server |
+| AC6, AC8, UI | By hand on the live URL, two windows                                                                                                                        | manual |
