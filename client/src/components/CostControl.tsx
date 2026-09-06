@@ -28,9 +28,12 @@ export function CostControl({ own, subtasks, editable, itemTitle, onChange }: Pr
   const label = describe(itemTitle, own, subtasks, shown);
 
   if (!editable) {
+    // Read-only: the title serves mouse users; a generic span must not carry aria-label, so the
+    // breakdown for assistive tech is real (visually hidden) text.
     return shown === null ? null : (
-      <span className="cost" aria-label={label}>
+      <span className="cost" title={label}>
         {formatCost(shown)}
+        {subtasks !== null && <span className="visually-hidden"> ({label})</span>}
       </span>
     );
   }
