@@ -25,22 +25,24 @@ change it, whoever holds the view link can watch it. Nothing on the server lists
 All nine optional stories plus the required one are implemented. Each has a spec with acceptance
 criteria that the tests are named after, and each shipped as its own reviewed pull request.
 
-| ID  | Story                                                          | Spec                                   | Tests                                                                           |
-| --- | -------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
-| S1  | Create to-do items _(required)_                                | [S1](specs/stories/S1-create-items.md) | `shared/apply.test.ts`, `server/app.test.ts`                                    |
-| S2  | Mark items as done                                             | [S2](specs/stories/S2-mark-done.md)    | `shared/apply.test.ts`, `server/app.test.ts`                                    |
-| S3  | Items persist across server restarts                           | [S3](specs/stories/S3-persistence.md)  | `server/persistence.test.ts`                                                    |
-| S4  | Real-time collaboration                                        | [S4](specs/stories/S4-realtime.md)     | `server/collaboration.test.ts` (real client engine against a real server)       |
-| S5  | Share via unique link, view-only or edit                       | [S5](specs/stories/S5-share-link.md)   | `server/app.test.ts`, `server/collaboration.test.ts`                            |
-| S6  | Reorder via drag & drop                                        | [S6](specs/stories/S6-reorder.md)      | `shared/order.test.ts`, `server/app.test.ts`, `server/collaboration.test.ts`    |
-| S7  | Sub-tasks with progress                                        | [S7](specs/stories/S7-subtasks.md)     | `shared/subtasks.test.ts`, `server/app.test.ts`, `server/collaboration.test.ts` |
-| S8  | Cost per task and sub-task, with totals                        | [S8](specs/stories/S8-cost.md)         | `shared/cost.test.ts`, `server/app.test.ts`                                     |
-| S9  | Markdown descriptions, rendered when not editing               | [S9](specs/stories/S9-markdown.md)     | `client/src/components/Description.test.tsx`, `server/app.test.ts`              |
-| S10 | Keep editing offline, sync when back online                    | [S10](specs/stories/S10-offline.md)    | `client/src/lib/cache.test.ts`, `server/collaboration.test.ts`                  |
-| X1  | UX pass: touch controls, recent lists, keyboard, small screens | [X1](specs/stories/X1-ux-pass.md)      | `client/src/lib/recent.test.ts`                                                 |
-| X2  | Hardening: limits, security headers, graceful shutdown         | [X2](specs/stories/X2-hardening.md)    | `server/hardening.test.ts`                                                      |
+| ID  | Story                                                          | Spec                                   | Tests                                                                                      |
+| --- | -------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
+| S1  | Create to-do items _(required)_                                | [S1](specs/stories/S1-create-items.md) | `shared/apply.test.ts`, `server/app.test.ts`                                               |
+| S2  | Mark items as done                                             | [S2](specs/stories/S2-mark-done.md)    | `shared/apply.test.ts`, `server/app.test.ts`                                               |
+| S3  | Items persist across server restarts                           | [S3](specs/stories/S3-persistence.md)  | `server/persistence.test.ts`                                                               |
+| S4  | Real-time collaboration                                        | [S4](specs/stories/S4-realtime.md)     | `server/collaboration.test.ts` (real client engine against a real server)                  |
+| S5  | Share via unique link, view-only or edit                       | [S5](specs/stories/S5-share-link.md)   | `server/app.test.ts`, `server/collaboration.test.ts`                                       |
+| S6  | Reorder via drag & drop                                        | [S6](specs/stories/S6-reorder.md)      | `shared/order.test.ts`, `server/app.test.ts`, `server/collaboration.test.ts`               |
+| S7  | Sub-tasks with progress                                        | [S7](specs/stories/S7-subtasks.md)     | `shared/subtasks.test.ts`, `server/app.test.ts`, `server/collaboration.test.ts`            |
+| S8  | Cost per task and sub-task, with totals                        | [S8](specs/stories/S8-cost.md)         | `shared/cost.test.ts`, `server/app.test.ts`                                                |
+| S9  | Markdown descriptions, rendered when not editing               | [S9](specs/stories/S9-markdown.md)     | `shared/apply.test.ts`, `client/src/components/Description.test.tsx`, `server/app.test.ts` |
+| S10 | Keep editing offline, sync when back online                    | [S10](specs/stories/S10-offline.md)    | `client/src/lib/cache.test.ts`, `server/app.test.ts`, `server/collaboration.test.ts`       |
+| X1  | UX pass: touch controls, recent lists, keyboard, small screens | [X1](specs/stories/X1-ux-pass.md)      | `client/src/lib/recent.test.ts`                                                            |
+| X2  | Hardening: limits, security headers, graceful shutdown         | [X2](specs/stories/X2-hardening.md)    | `server/hardening.test.ts`                                                                 |
 
-93 tests, run on every push by CI. Merges to `main` require the CI check and deploy automatically.
+The whole suite — pure-function tests in `shared/`, protocol tests over real WebSockets, the client
+engine driven against a real server, and render-to-string component tests — runs on every push in
+CI. Merges to `main` require the CI check and deploy automatically.
 
 ## How it works
 
@@ -55,7 +57,7 @@ and offline replay are safe without any bookkeeping.
 
 ```
  browser A ──┐                        ┌── SQLite file on a persistent volume
-             │  WebSocket (/ws)        │
+             │  WebSocket (/ws)       │
  browser B ──┼──────────────►  Node server (Fastify)
              │                 - serves the built React app
  browser C ──┘  HTTP (/api)    - REST: create a list
