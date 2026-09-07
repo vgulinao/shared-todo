@@ -14,6 +14,7 @@ export type ListState = {
 };
 
 const NOT_FOUND_CLOSE_CODE = 4004;
+const RATE_LIMITED_CLOSE_CODE = 4029;
 const MIN_RETRY_MS = 500;
 const MAX_RETRY_MS = 10_000;
 const MAX_ACKED = 500;
@@ -141,7 +142,15 @@ export class SyncClient {
         this.cache?.clear();
         return;
       }
-      this.update({ status: "offline" });
+      // A rate-limited close (X2) is just an early offline: the queue is intact and replays after the
+      // backoff, which is the throttle.
+      this.update({
+        status: "offline",
+        error:
+          event.code === RATE_LIMITED_CLOSE_CODE
+            ? "too many changes at once, reconnecting"
+            : this.state.error,
+      });
       this.retryTimer = setTimeout(() => this.connect(), this.retryMs);
       this.retryMs = Math.min(this.retryMs * 2, MAX_RETRY_MS);
     };

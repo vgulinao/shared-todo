@@ -17,13 +17,23 @@ import type { Db } from "./db.ts";
 
 const DEFAULT_LIST_TITLE = "Untitled list";
 
-/** Per connection: more than this many ops inside the window is a runaway client, not a person. */
-const RATE_LIMIT = { ops: 60, windowMs: 10_000 };
+/**
+ * Per connection: more than this many frames inside the window is a runaway client, not a person.
+ * Over the limit the socket is closed (code 4029), never individual ops rejected: a rejection would
+ * ship a snapshot and settle the op, while a close keeps the client's queue intact and its reconnect
+ * backoff becomes the throttle. Bulk gestures (a renumber, a cascade) that exceed it complete after
+ * the reconnect because their ops are still pending.
+ */
+const RATE_LIMIT = { frames: 600, windowMs: 10_000 };
+export const RATE_LIMITED_CLOSE_CODE = 4029;
 
 // Share tokens travel in the /ws query string and are the credential, so requests are logged as
 // method + path only. Nothing else in this app uses a query string.
+const LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
+const logLevel = LOG_LEVELS.includes(process.env.LOG_LEVEL ?? "") ? process.env.LOG_LEVEL : "info";
+
 const logger = {
-  level: process.env.LOG_LEVEL ?? "info",
+  level: logLevel,
   serializers: {
     req: (req: { method: string; url: string }) => ({
       method: req.method,
@@ -121,16 +131,26 @@ export async function buildApp(
 
     socket.on("message", (data) => {
       const received = Date.now();
+      // Every frame counts, whatever it turns out to be: read-only and malformed floods included.
+      if (overLimit(recent, received)) {
+        app.log.info({ listId: list.id }, "socket closed: too many messages");
+        socket.close(RATE_LIMITED_CLOSE_CODE, "too many messages");
+        return;
+      }
       const parsed = parseClientMessage(parseJson(data.toString()));
       if (!parsed.ok) return reject(null, parsed.reason);
 
       const op = parsed.value;
       if (list.role !== "edit") return reject(op.opId, "read-only link", op.kind);
-      if (overLimit(recent, received))
-        return reject(op.opId, "too many changes, slow down", op.kind);
       const invalid = invalidParentReason(db, list.id, op);
       if (invalid) return reject(op.opId, invalid, op.kind);
-      if (op.kind === "createItem" && db.countItems(list.id) >= limits.maxItems) {
+      // The cap refuses only creates that would add a row; a replayed create of an existing item
+      // must still be acknowledged (S10).
+      if (
+        op.kind === "createItem" &&
+        !db.hasItem(list.id, op.item.id) &&
+        db.countItems(list.id) >= limits.maxItems
+      ) {
         return reject(op.opId, "this list is full", op.kind);
       }
 
@@ -174,7 +194,7 @@ export async function buildApp(
 /** Records `now` and reports whether the window already held the maximum before it. */
 function overLimit(recent: number[], now: number): boolean {
   while (recent.length > 0 && now - (recent[0] as number) > RATE_LIMIT.windowMs) recent.shift();
-  if (recent.length >= RATE_LIMIT.ops) return true;
+  if (recent.length >= RATE_LIMIT.frames) return true;
   recent.push(now);
   return false;
 }

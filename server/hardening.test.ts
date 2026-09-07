@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MAX_MESSAGE_BYTES } from "../shared/protocol.ts";
-import { buildApp } from "./app.ts";
+import { RATE_LIMITED_CLOSE_CODE, buildApp } from "./app.ts";
 import { Db } from "./db.ts";
 import { base, connect, createList, item, listen, uid, type App } from "./test-helpers.ts";
 
@@ -26,14 +26,30 @@ describe("X2 hardening", () => {
     fresh.socket.close();
   });
 
-  it("AC2 more than 60 ops in 10 seconds are rejected with a slow-down reason", async () => {
+  it("AC2 a flood of frames closes the socket with 4029; nothing was rejected or settled", async () => {
+    const { editToken } = await createList(app);
+    const client = connect(baseUrl, editToken);
+    await client.next();
+    // 600 frames of any kind fill the window (malformed ones count too); the 601st closes the socket.
+    for (let i = 0; i < 601; i++) client.socket.send("flood");
+    expect(await client.closed()).toBe(RATE_LIMITED_CLOSE_CODE);
+
+    // A read-only socket is bounded the same way (it would otherwise get a snapshot per rejection).
+    const { viewToken } = await createList(app);
+    const viewer = connect(baseUrl, viewToken);
+    await viewer.next();
+    for (let i = 0; i < 601; i++) viewer.socket.send("flood");
+    expect(await viewer.closed()).toBe(RATE_LIMITED_CLOSE_CODE);
+  });
+
+  it("AC2 a bulk gesture under the limit goes through in full", async () => {
     const { editToken } = await createList(app);
     const client = connect(baseUrl, editToken);
     await client.next();
     const id = uid();
     client.send({ ...base, opId: "op-0", kind: "createItem", item: item({ id, position: 1 }) });
     await client.next();
-    for (let i = 1; i <= 60; i++) {
+    for (let i = 1; i <= 100; i++) {
       client.send({
         ...base,
         opId: `op-${i}`,
@@ -42,11 +58,7 @@ describe("X2 hardening", () => {
         patch: { done: i % 2 === 0 },
       });
     }
-    const replies = [];
-    for (let i = 1; i <= 60; i++) replies.push(await client.next());
-    // 59 more echoes fill the window (the create was the first); the 61st op in the window is refused.
-    expect(replies.slice(0, 59).every((m) => m.type === "op")).toBe(true);
-    expect(replies[59]).toMatchObject({ type: "rejected", reason: "too many changes, slow down" });
+    for (let i = 1; i <= 100; i++) expect((await client.next()).type).toBe("op");
     client.socket.close();
   });
 
@@ -54,12 +66,13 @@ describe("X2 hardening", () => {
     const { editToken } = await createList(app);
     const client = connect(baseUrl, editToken);
     await client.next();
+    const firstId = uid();
     for (let i = 1; i <= 3; i++) {
       client.send({
         ...base,
         opId: `op-${i}`,
         kind: "createItem",
-        item: item({ id: uid(), position: i }),
+        item: item({ id: i === 1 ? firstId : uid(), position: i }),
       });
       await client.next();
     }
@@ -74,6 +87,15 @@ describe("X2 hardening", () => {
       opId: "op-4",
       reason: "this list is full",
     });
+    await client.next(); // the snapshot that follows a rejection
+    // A replayed create of an item the list already holds is acknowledged even at the cap (S10).
+    client.send({
+      ...base,
+      opId: "op-1",
+      kind: "createItem",
+      item: item({ id: firstId, position: 1 }),
+    });
+    expect(await client.next()).toMatchObject({ type: "op", op: { opId: "op-1" } });
     client.socket.close();
   });
 

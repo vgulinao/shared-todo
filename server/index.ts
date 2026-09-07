@@ -17,11 +17,21 @@ await app.listen({ port, host: "0.0.0.0" });
 
 // Graceful shutdown (spec X2 AC5). Railway sends SIGTERM on every deploy; clients get a 1001 close
 // from the preClose hook and reconnect to the new instance instead of waiting for a timeout.
-const shutdown = async (signal: string) => {
+let closing = false;
+const shutdown = (signal: string) => {
+  if (closing) return; // a second signal must not close the app and the database twice
+  closing = true;
   app.log.info({ signal }, "shutting down");
-  await app.close();
-  db.close();
-  process.exit(0);
+  app
+    .close()
+    .then(() => {
+      db.close();
+      process.exit(0);
+    })
+    .catch((err: unknown) => {
+      app.log.error({ err }, "shutdown failed");
+      process.exit(1);
+    });
 };
-process.on("SIGTERM", () => void shutdown("SIGTERM"));
-process.on("SIGINT", () => void shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

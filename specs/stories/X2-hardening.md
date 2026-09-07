@@ -13,9 +13,12 @@ would change the protocol or add infrastructure is out (see `docs/decisions.md` 
 
 - **AC1 Oversized frames are refused.** A WebSocket message larger than 64 KB closes the connection
   with code 1009 (message too big) instead of being parsed. Legitimate ops are well under 10 KB.
-- **AC2 Per-connection op rate limit.** More than 60 operations in any 10-second window from one
-  socket are rejected with reason "too many changes, slow down" (and the usual snapshot). Typing,
-  ticking, and dragging by a person stay far below this; a runaway client cannot flood a room.
+- **AC2 Per-connection message rate limit.** More than 600 frames in any 10-second window from one
+  socket, of any kind (valid, malformed, read-only), close the socket with code 4029. Nothing is
+  rejected or settled: the client keeps its queue, shows "too many changes at once, reconnecting", and
+  its reconnect backoff is the throttle. A person never reaches it; bulk gestures that could (a renumber
+  of a very long list) complete after the reconnect because their ops are still pending. A runaway
+  client cannot flood a room or make the server ship snapshots in reply.
 - **AC3 Items per list are capped** at 2 000. A `createItem` beyond the cap is rejected with
   "this list is full". Sub-tasks count. The cap is a constant in the shared protocol so the client can
   show it.
@@ -42,8 +45,8 @@ scanning in CI (a one-line addition, but a separate PR if at all).
 ## Data / API / protocol changes
 
 - `MAX_ITEMS_PER_LIST = 2000` and `MAX_MESSAGE_BYTES = 65536` in `shared/protocol.ts`.
-- Server: `@fastify/websocket` `maxPayload`; a per-socket sliding-window counter in the message
-  handler; a `countItems(listId)` query; `@fastify/helmet` for the headers; a shutdown hook in
+- Server: `@fastify/websocket` `maxPayload`; a per-socket sliding-window frame counter that closes the
+  socket (4029) rather than rejecting ops; a `countItems(listId)` query; `@fastify/helmet` for the headers; a shutdown hook in
   `server/index.ts`.
 - Rejections reuse the existing `rejected` + snapshot path; the client needs no change beyond
   showing the reason it already shows.
