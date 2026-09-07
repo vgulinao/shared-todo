@@ -49,8 +49,9 @@ reload while offline: the queue and the last known list live only in memory.
   merging `pending` with what is already stored (by `opId`) so two tabs do not clobber each other's
   queues. The production cache is `localStorage` under `shared-todo.cache.<token>`; tests inject an
   in-memory one.
-- `useList` exposes the pending count read from the engine at render time (no new state; the badge
-  is only visible in states that already re-render).
+- `ListState` gains `pending: number`, kept in step with the queue, so the badge is ordinary React
+  state. Consequence for S4 AC2: the echo of your own op now causes exactly one state callback
+  (pending 1 → 0) while the items Map stays the same instance; S4's spec and test say so.
 - Decision D13 records why `localStorage` rather than IndexedDB or a service worker.
 
 ## Out of scope

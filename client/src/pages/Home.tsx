@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { navigate, onLinkClick } from "../lib/router.ts";
 import { forget, loadRecent, saveRecent, timeAgo } from "../lib/recent.ts";
+import { localStorageCache } from "../lib/cache.ts";
 
 export function Home() {
   const [busy, setBusy] = useState(false);
@@ -25,6 +26,7 @@ export function Home() {
     const next = forget(recent, token);
     setRecent(next);
     saveRecent(next);
+    localStorageCache(token).clear(); // spec S10 AC7: forgetting a list drops its offline copy too
   }
 
   return (

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { SyncClient, type ListState } from "../client/src/lib/SyncClient.ts";
+import { mergePending, type Cached, type ListCache } from "../client/src/lib/cache.ts";
 import { childrenOf, nextPosition } from "../shared/apply.ts";
 import { planMove } from "../shared/order.ts";
 import { idsToToggle, progressOf } from "../shared/subtasks.ts";
@@ -65,13 +66,23 @@ type Client = {
 };
 const clients: Client[] = [];
 
-function connect(token: string): Client {
-  let state: ListState = { status: "connecting", list: null, items: new Map(), error: null };
+function connect(token: string, cache: ListCache | null = null): Client {
+  let state: ListState = {
+    status: "connecting",
+    list: null,
+    items: new Map(),
+    error: null,
+    pending: 0,
+  };
   let renders = 0;
-  const sync = new SyncClient(`ws://127.0.0.1:${port}/ws?token=${token}`, (next) => {
-    state = next;
-    renders++;
-  });
+  const sync = new SyncClient(
+    `ws://127.0.0.1:${port}/ws?token=${token}`,
+    (next) => {
+      state = next;
+      renders++;
+    },
+    cache,
+  );
   const client: Client = {
     get state() {
       return state;
@@ -80,7 +91,7 @@ function connect(token: string): Client {
       return renders;
     },
     get pendingCount() {
-      return sync.pendingCount;
+      return state.pending;
     },
     dispatch: (op) => sync.dispatch(op),
     close: () => sync.close(),
@@ -142,7 +153,7 @@ describe("S4 real-time collaboration", () => {
     await until(() => !b.state.items.has(id), "B sees the delete");
   });
 
-  it("AC2 the sender sees its change immediately, and the echo causes no re-render", async () => {
+  it("AC2 the sender sees its change immediately; the echo only settles the pending count", async () => {
     const { a } = await twoClients();
     const id = uid();
     a.dispatch(createOp(id, "eggs", 1));
@@ -151,8 +162,8 @@ describe("S4 real-time collaboration", () => {
     const rendersAfterDispatch = a.renders;
 
     await until(() => a.pendingCount === 0, "the echo acknowledged the op");
-    expect(a.state.items).toBe(optimistic); // same Map instance
-    expect(a.renders).toBe(rendersAfterDispatch); // React was not notified at all
+    expect(a.state.items).toBe(optimistic); // same Map instance: no row re-renders
+    expect(a.renders).toBe(rendersAfterDispatch + 1); // exactly one callback: pending 1 → 0 (S10 badge)
     expect(a.state.error).toBeNull();
   });
 
@@ -365,5 +376,73 @@ describe("S7 sub-tasks (client engine)", () => {
       "all done on B",
     );
     expect(progressOf(childrenOf(b.state.items, parent))).toEqual({ done: 2, total: 2 });
+  });
+});
+
+/** The browser's localStorage, for tests: one entry, same merge rule as production. */
+function memoryCache(): ListCache & { peek(): Cached | null } {
+  let stored: Cached | null = null;
+  return {
+    load: () => stored,
+    save: (c, acked) => {
+      stored = { ...c, pending: mergePending(stored?.pending ?? [], c.pending, acked) };
+    },
+    clear: () => {
+      stored = null;
+    },
+    peek: () => stored,
+  };
+}
+
+describe("S10 offline (client engine)", () => {
+  it("AC1/AC2 a reload while offline keeps the list and the queue; both sync when back online", async () => {
+    const { a, editToken } = await twoClients();
+    const cache = memoryCache();
+    const first = connect(editToken, cache);
+    await until(() => first.state.list !== null, "first session connected");
+    const seen = uid();
+    a.dispatch(createOp(seen, "seen before outage", 1));
+    await until(
+      () => first.state.items.has(seen) && first.pendingCount === 0,
+      "first session in sync",
+    );
+
+    await stopServer();
+    await until(() => first.state.status === "offline", "offline");
+    const typed = uid();
+    first.dispatch(createOp(typed, "typed offline", 2));
+    expect(cache.peek()?.pending.map((o) => o.opId)).toEqual([expect.any(String)]);
+    first.close(); // the tab is closed / reloaded
+
+    // A new page load with the same storage, still offline: the list and the queue are back.
+    const second = connect(editToken, cache);
+    expect(second.state.list?.title).toBe("Untitled list");
+    expect(titlesOf(second)).toEqual(["seen before outage", "typed offline"]);
+    expect(second.pendingCount).toBe(1);
+    const more = uid();
+    second.dispatch(createOp(more, "typed after reload", 3)); // keeps working offline
+    expect(second.pendingCount).toBe(2);
+
+    await startServer();
+    await until(
+      () => second.state.status === "online" && second.pendingCount === 0,
+      "replayed",
+      6000,
+    );
+    const fresh = connect(editToken);
+    await until(() => fresh.state.items.has(more), "a fresh client sees both offline edits", 6000);
+    expect(titlesOf(fresh)).toEqual(["seen before outage", "typed offline", "typed after reload"]);
+    expect(cache.peek()?.pending).toEqual([]);
+  });
+
+  it("AC4 without a cache, an unreachable server shows nothing but the offline status", async () => {
+    const { editToken } = await twoClients();
+    await stopServer();
+    const cold = connect(editToken, memoryCache());
+    await until(() => cold.state.status === "offline", "offline");
+    expect(cold.state.list).toBeNull();
+    expect(cold.state.items.size).toBe(0);
+    await startServer();
+    await until(() => cold.state.list !== null, "connects once the server is back", 6000);
   });
 });

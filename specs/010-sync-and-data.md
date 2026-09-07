@@ -157,12 +157,13 @@ Doubles allow roughly 50 consecutive midpoint insertions at the same spot before
 if `newPosition` equals a neighbour, the client renumbers the siblings to integers first. Not expected
 to trigger in normal use, tested anyway.
 
-## Offline (S10, stretch)
+## Offline (S10)
 
-Everything above already makes this mostly work: while `offline`, user actions still `apply` locally
-and accumulate in `pending`; on reconnect the snapshot + replay step sends them. The additional work
-is only to persist `pending` and the last known `items` in `localStorage`, so a page reload while
-offline does not lose them. If S10 is cut, nothing in this document changes.
+While `offline`, user actions still `apply` locally and accumulate in `pending`; on reconnect the
+snapshot + replay step sends them. S10 persists the last known list, items, and `pending` per list in
+`localStorage` (`shared-todo.cache.<token>`), written on every change and read on load, so a page
+reload while offline keeps both. Two tabs merge their queues by `opId`. Ops acknowledged in a session
+are pruned from what an earlier session stored. Nothing changes on the server (D13).
 
 ## What we deliberately did not build
 
