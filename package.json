@@ -10,7 +10,7 @@
     "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "tsx watch server/index.ts",
     "dev:client": "vite",
-    "build": "vite build && tsc -p tsconfig.json",
+    "build": "vite build && tsc -p tsconfig.build.json",
     "start": "node dist/server/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p client/tsconfig.json",
     "lint": "eslint .",

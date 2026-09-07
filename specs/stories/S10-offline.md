@@ -17,7 +17,9 @@ reload while offline: the queue and the last known list live only in memory.
 ## Acceptance criteria
 
 - **AC1** Given I am offline with unsent edits, when I reload the page (or close and reopen the tab),
-  then I see the list as I last had it, including my unsent edits, and I can keep editing.
+  then I see the list as I last had it, including my unsent edits, and I can keep editing. This needs
+  the app itself to load without a network: a service worker keeps the page and its assets available
+  after the first online visit. A device that has never loaded the app online cannot open it offline.
 - **AC2** Given I come back online after AC1, then my unsent edits are sent and appear for everyone,
   and I receive whatever others changed meanwhile. Nothing is sent twice in a way that changes state
   (idempotency, as before).
@@ -56,11 +58,19 @@ reload while offline: the queue and the last known list live only in memory.
 - `ListState` gains `pending: number`, kept in step with the queue, so the badge is ordinary React
   state. Consequence for S4 AC2: the echo of your own op now causes exactly one state callback
   (pending 1 → 0) while the items Map stays the same instance; S4's spec and test say so.
-- Decision D13 records why `localStorage` rather than IndexedDB or a service worker.
+- A service worker (`client/public/sw.js`, plain JavaScript, ~40 lines, no library) makes the app
+  shell available offline: the page is fetched network-first with the cached copy as fallback, so a
+  deploy is picked up on the next online load; the hashed asset files are cache-first because their
+  names change with their content. `/api`, `/ws`, and `/healthz` are never touched. Registered only
+  in the production build (Vite's dev server has its own module graph). Old caches are deleted when a
+  new worker activates.
+- Decision D13 records the storage choices: `localStorage` for data, a hand-written service worker
+  for the shell, nothing installable.
 
 ## Out of scope
 
-Offline creation of new lists (needs the server), a service worker / installable app, conflict UI
+Offline creation of new lists (needs the server), an installable app (manifest, home-screen icon,
+push), conflict UI
 (last write wins remains, see spec 010), cache expiry (lists are small; `forget` removes it),
 encrypting the cache (the token in the URL is already the credential the cache would protect).
 
@@ -76,4 +86,5 @@ write wins). Already documented as D4; S10 makes it reachable across reloads, so
 | AC1/AC2           | Engine: A edits offline (server stopped); a **new** SyncClient with the same cache object starts, shows cached items + pending; server restarts; edits reach a fresh client; pending drains to 0 | server |
 | AC6               | `mergeCache`: pending from two caches merged by opId, no duplicates, order preserved                                                                                                             | client |
 | AC4               | Engine: no cache + server down → state has no list (Connecting), status "offline" after the failed attempt                                                                                       | server |
-| AC3, AC5, AC7, UI | By hand: DevTools → Network → Offline; reload; edit; go online; two tabs; view link; forget                                                                                                      | manual |
+| AC1 shell         | By hand on the built app (`npm run build && npm start`, or the live URL): visit online once, DevTools → Network → Offline, reload → the app loads and shows the cached list                      | manual |
+| AC3, AC5, AC7, UI | By hand: DevTools → Network → Offline; edit; reload; go online; two tabs; view link; forget                                                                                                      | manual |
