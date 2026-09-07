@@ -64,7 +64,7 @@ and offline replay are safe without any bookkeeping.
 
 - `shared/` — types, the operation protocol and its validator, the pure `apply`, ordering,
   sub-task and cost helpers. Used by both sides.
-- `server/` — `Db` (SQLite, ten hand-written statements), the Fastify app with the WebSocket rooms,
+- `server/` — `Db` (SQLite, a dozen hand-written statements), the Fastify app with the WebSocket rooms,
   and the tests.
 - `client/` — React 19 with Vite. `SyncClient` owns the socket, the pending queue, reconnection with
   backoff, and the offline cache; React mirrors its state. A hand-written service worker keeps the
@@ -92,7 +92,8 @@ we would do if we did" — the decisions log tries to give exactly that.
 - **One server instance.** Rooms live in process memory and the database is a local file. Scaling
   out means Postgres plus a fan-out channel between instances; the protocol would not change
   (decision D10).
-- **Share links cannot be revoked.** Anyone with the edit link can edit until the list is deleted.
+- **Share links cannot be revoked.** Anyone who has ever had the edit link can edit; there is no
+  rotation, expiry, or list deletion.
 - **The snapshot on connect is the whole list.** Right for a few kilobytes, wrong for large
   documents; the delta design is described in the spec but was not needed.
 - **No per-IP rate limit**, only per connection. A real deployment would put that at the edge.
