@@ -10,18 +10,18 @@ There are no accounts. The link is the identity and the permission.
 
 ## Stories
 
-| ID  | Story                                                        | Status  |
-| --- | ------------------------------------------------------------ | ------- |
-| S1  | Create to-do items (required)                                | done    |
-| S2  | Mark items as done                                           | done    |
-| S3  | Items persist across server restarts                         | done    |
-| S4  | Real-time collaboration between users                        | done    |
-| S5  | Share a list via unique link (view-only or edit)             | done    |
-| S6  | Reorder items via drag & drop                                | done    |
-| S7  | Sub-tasks with overall progress on the parent                | done    |
-| S8  | Cost per task or sub-task, with totals                       | done    |
-| S9  | Markdown descriptions rendered as rich text when not editing | done    |
-| S10 | Keep editing offline, sync when back online                  | stretch |
+| ID  | Story                                                        | Status |
+| --- | ------------------------------------------------------------ | ------ |
+| S1  | Create to-do items (required)                                | done   |
+| S2  | Mark items as done                                           | done   |
+| S3  | Items persist across server restarts                         | done   |
+| S4  | Real-time collaboration between users                        | done   |
+| S5  | Share a list via unique link (view-only or edit)             | done   |
+| S6  | Reorder items via drag & drop                                | done   |
+| S7  | Sub-tasks with overall progress on the parent                | done   |
+| S8  | Cost per task or sub-task, with totals                       | done   |
+| S9  | Markdown descriptions rendered as rich text when not editing | done   |
+| S10 | Keep editing offline, sync when back online                  | done   |
 
 Each story has its own spec in `specs/stories/` with acceptance criteria and a test plan. The README
 lists what shipped.

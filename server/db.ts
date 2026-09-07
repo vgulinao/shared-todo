@@ -26,6 +26,7 @@ export class Db {
   private readonly topLevelItem: Statement<[string, string], { ok: number }>;
   private readonly anyChild: Statement<[string, string], { ok: number }>;
   private readonly itemInList: Statement<[string, string], { ok: number }>;
+  private readonly countInList: Statement<[string], { n: number }>;
   private readonly insertItem: Statement;
   private readonly updateItem: Statement;
   private readonly moveItem: Statement;
@@ -54,6 +55,7 @@ export class Db {
       "SELECT 1 AS ok FROM items WHERE parent_id = ? AND list_id = ? LIMIT 1",
     );
     this.itemInList = this.sqlite.prepare("SELECT 1 AS ok FROM items WHERE id = ? AND list_id = ?");
+    this.countInList = this.sqlite.prepare("SELECT count(*) AS n FROM items WHERE list_id = ?");
     this.insertItem = this.sqlite.prepare(
       `INSERT OR IGNORE INTO items (id, list_id, parent_id, title, description, done, cost, position)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -105,6 +107,11 @@ export class Db {
   /** True if the item exists in this list (a replayed create, not a cross-list id collision). */
   hasItem(listId: string, itemId: string): boolean {
     return this.itemInList.get(itemId, listId) !== undefined;
+  }
+
+  /** Number of items in the list, sub-tasks included (spec X2 AC3). */
+  countItems(listId: string): number {
+    return this.countInList.get(listId)?.n ?? 0;
   }
 
   /** True if `itemId` has at least one sub-task in the list. */

@@ -1,6 +1,6 @@
 # S10 — Keep editing offline, sync when back online
 
-Status: approved
+Status: done
 
 ## User story
 

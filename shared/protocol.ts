@@ -2,6 +2,10 @@ import type { Item, ListInfo, Result } from "./types.ts";
 
 export const MAX_TITLE_LENGTH = 500;
 export const MAX_DESCRIPTION_LENGTH = 5000;
+/** Items per list, sub-tasks included (spec X2). */
+export const MAX_ITEMS_PER_LIST = 2000;
+/** Largest WebSocket frame the server accepts; a legitimate op is well under 10 KB (spec X2). */
+export const MAX_MESSAGE_BYTES = 65_536;
 
 export type ItemPatch = Partial<Pick<Item, "title" | "description" | "done" | "cost">>;
 
