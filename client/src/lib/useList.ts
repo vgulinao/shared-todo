@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Op } from "../../../shared/protocol.ts";
 import { SyncClient, type ListState } from "./SyncClient.ts";
+import { localStorageCache } from "./cache.ts";
 
-const initialState: ListState = { status: "connecting", list: null, items: new Map(), error: null };
+const initialState: ListState = {
+  status: "connecting",
+  list: null,
+  items: new Map(),
+  error: null,
+  pending: 0,
+};
 
 /** Connects to one list for the lifetime of the component and exposes its state and a dispatcher. */
 export function useList(token: string) {
@@ -11,7 +18,11 @@ export function useList(token: string) {
 
   useEffect(() => {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
-    const sync = new SyncClient(`${protocol}://${location.host}/ws?token=${token}`, setState);
+    const sync = new SyncClient(
+      `${protocol}://${location.host}/ws?token=${token}`,
+      setState,
+      localStorageCache(token),
+    );
     client.current = sync;
     return () => {
       sync.close();

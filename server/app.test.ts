@@ -535,3 +535,31 @@ describe("S9 markdown descriptions", () => {
     cleared.socket.close();
   });
 });
+
+describe("S10 offline — replayed creates", () => {
+  it("AC6 a replayed createItem for an item this list already has is acknowledged, not rejected", async () => {
+    const { editToken } = await createList();
+    const a = uid();
+    const tabA = connect(editToken);
+    const tabB = connect(editToken);
+    await tabA.next();
+    await tabB.next();
+    const create = {
+      ...base,
+      opId: "op-1",
+      kind: "createItem" as const,
+      item: item({ id: a, position: 1 }),
+    };
+    tabA.send(create);
+    await tabA.next();
+    await tabB.next();
+    // Tab B merged tab A's offline queue and replays the very same op after reconnecting.
+    tabB.send(create);
+    expect(await tabB.next()).toMatchObject({ type: "op", op: { opId: "op-1" } });
+    // Nobody else hears about it: tab A's next message is its own next op.
+    tabA.send({ ...base, opId: "op-2", kind: "deleteItem", id: a });
+    expect(await tabA.next()).toMatchObject({ type: "op", op: { opId: "op-2" } });
+    tabA.socket.close();
+    tabB.socket.close();
+  });
+});

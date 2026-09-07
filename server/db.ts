@@ -25,6 +25,7 @@ export class Db {
   private readonly selectItems: Statement<[string], ItemRow>;
   private readonly topLevelItem: Statement<[string, string], { ok: number }>;
   private readonly anyChild: Statement<[string, string], { ok: number }>;
+  private readonly itemInList: Statement<[string, string], { ok: number }>;
   private readonly insertItem: Statement;
   private readonly updateItem: Statement;
   private readonly moveItem: Statement;
@@ -52,6 +53,7 @@ export class Db {
     this.anyChild = this.sqlite.prepare(
       "SELECT 1 AS ok FROM items WHERE parent_id = ? AND list_id = ? LIMIT 1",
     );
+    this.itemInList = this.sqlite.prepare("SELECT 1 AS ok FROM items WHERE id = ? AND list_id = ?");
     this.insertItem = this.sqlite.prepare(
       `INSERT OR IGNORE INTO items (id, list_id, parent_id, title, description, done, cost, position)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -98,6 +100,11 @@ export class Db {
   /** True if `itemId` is a top-level item of the list, i.e. a valid parent for a sub-task. */
   isTopLevelItem(listId: string, itemId: string): boolean {
     return this.topLevelItem.get(itemId, listId) !== undefined;
+  }
+
+  /** True if the item exists in this list (a replayed create, not a cross-list id collision). */
+  hasItem(listId: string, itemId: string): boolean {
+    return this.itemInList.get(itemId, listId) !== undefined;
   }
 
   /** True if `itemId` has at least one sub-task in the list. */

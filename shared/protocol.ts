@@ -82,7 +82,8 @@ export function parseClientMessage(raw: unknown): Result<Op> {
   }
 }
 
-function parseItem(raw: unknown): Item | null {
+/** Validates an item from an untrusted source (a client message, or a stale browser cache). */
+export function parseItem(raw: unknown): Item | null {
   if (!isRecord(raw)) return null;
   const title = isString(raw.title) ? normalizeTitle(raw.title) : null;
   if (

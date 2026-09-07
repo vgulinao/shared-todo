@@ -150,7 +150,13 @@ export function ListPage({ token }: { token: string }) {
           onRename={(text) => dispatch(renameList(text))}
         />
         {!editable && <span className="badge">View only</span>}
-        {state.status === "offline" && <span className="badge">Offline · reconnecting…</span>}
+        {state.status === "offline" && (
+          <span className="badge">
+            {state.pending > 0
+              ? `Offline · ${state.pending} unsynced change${state.pending === 1 ? "" : "s"}`
+              : "Offline · reconnecting…"}
+          </span>
+        )}
         {editable && (
           <button
             className="secondary share-toggle"

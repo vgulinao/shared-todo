@@ -127,3 +127,21 @@ CommonMark only; no extension plugins.
 have to defend in review), writing a Markdown parser (not the skill under test, and a security surface).
 **Cost.** About 40 kB gzipped added to the bundle for the parser pipeline. The render-to-string test
 in `Description.test.tsx` pins the safety properties so an upgrade cannot silently change them.
+
+## D13 — Offline: `localStorage` for the data, a hand-written service worker for the app shell
+
+**Context.** S10: keep editing without a connection and survive a page reload; sync when back.
+**Decision.** The sync engine already queues and replays operations (S4). S10 adds a per-list
+`localStorage` entry holding the last known list and the pending queue, written on every change and
+read on load. Two tabs merge their queues by operation id rather than overwriting each other. The
+count of unsynced changes is shown in the offline badge.
+A reload while offline also needs the page and its JavaScript, which the browser will not fetch
+without a network, so a service worker caches the app shell: page network-first with cached
+fallback, hashed assets cache-first, API and socket paths untouched, registered in production only.
+**Not chosen.** IndexedDB (async API and more code for kilobytes of data), a PWA toolchain such as
+`vite-plugin-pwa`/Workbox (generated code and a manifest for three files we can name), an installable
+app (manifest, icons, push: a different product), an op log with server-side versions (D3).
+**Cost.** `localStorage` is synchronous and per origin, capped around 5 MB: ample for to-do lists,
+wrong for large documents. The service worker is a second cache to reason about: it can only serve
+what an online visit stored, and stale asset files accumulate until the worker version changes. A replayed edit can overwrite a newer edit made while offline (D4), and
+S10 makes that reachable across reloads, so the README states it.

@@ -12,7 +12,8 @@ shopping list is one list, not three copies.
 - **AC1** Given two people have the same list open, when one creates, renames, ticks, or deletes an
   item, then the other sees the change within one network round trip, without reloading.
 - **AC2** Given I make a change, then it appears for me immediately, before the server has answered,
-  and when the server's echo arrives nothing flickers, duplicates, or jumps.
+  and when the server's echo arrives nothing flickers, duplicates, or jumps: the items are the very
+  same objects; only the unsynced count settles (S10).
 - **AC3** Given my connection drops briefly (server restart, network blip) and I keep editing, then
   when the connection is back my edits are sent and appear for the others, and I receive the edits
   the others made meanwhile. The "offline" badge shows while disconnected.
@@ -50,7 +51,7 @@ Tests drive the real `SyncClient` (Node 24 has a global `WebSocket`) against an 
 | AC  | Test                                                                                                                                                                                                 | Where  |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | AC1 | A dispatches create/update/delete; B's state reflects each                                                                                                                                           | server |
-| AC2 | A's state has the item synchronously after dispatch; the echo leaves the same items Map and triggers no state callback (no re-render)                                                                | server |
+| AC2 | A's state has the item synchronously after dispatch; the echo leaves the same items Map (no row re-renders) and changes only the pending count (S10 badge)                                           | server |
 | AC3 | Stop the server; A edits while "offline" (pending 1); restart on the same port; C connects and edits before A reconnects; A comes back "online" with pending 0, holding both edits; C holds both too | server |
 | AC4 | A renames, B ticks, concurrently; both end with the new title and done = true                                                                                                                        | server |
 | AC5 | A and B rename the same item concurrently; both end with the same title                                                                                                                              | server |
