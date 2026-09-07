@@ -1,6 +1,6 @@
 # X2 — Hardening
 
-Status: approved
+Status: done
 
 ## Purpose
 

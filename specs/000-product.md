@@ -38,7 +38,7 @@ lists what shipped.
 
 ```
  browser A ──┐                        ┌── SQLite file on a persistent volume
-             │  WebSocket (/ws)        │
+             │  WebSocket (/ws)       │
  browser B ──┼──────────────►  Node server (Fastify)
              │                 - serves the built React app
  browser C ──┘  HTTP (/api)    - REST: create a list
