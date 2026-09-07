@@ -41,6 +41,7 @@ export class SyncClient {
   private readonly url: string;
   private readonly onChange: (state: ListState) => void;
   private readonly cache: ListCache | null;
+  private readonly stopWatchingNetwork: () => void;
 
   constructor(url: string, onChange: (state: ListState) => void, cache: ListCache | null = null) {
     this.url = url;
@@ -59,6 +60,7 @@ export class SyncClient {
       };
       this.onChange(this.state); // render the cached list now, not after the first connection attempt
     }
+    this.stopWatchingNetwork = this.watchNetwork();
     this.connect();
   }
 
@@ -72,8 +74,32 @@ export class SyncClient {
 
   close(): void {
     this.closed = true;
+    this.stopWatchingNetwork();
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.socket?.close();
+  }
+
+  /**
+   * An open WebSocket does not notice a lost network until a send fails or TCP gives up, which can
+   * take minutes (and DevTools' offline emulation never severs it). The browser's own events are
+   * quicker: going offline closes the socket now; coming back reconnects now instead of after backoff.
+   */
+  private watchNetwork(): () => void {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function")
+      return () => {};
+    const onOffline = () => this.socket?.close();
+    const onOnline = () => {
+      if (this.closed || this.state.status === "online") return;
+      if (this.retryTimer) clearTimeout(this.retryTimer);
+      this.retryMs = MIN_RETRY_MS;
+      this.connect();
+    };
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOnline);
+    };
   }
 
   private connect(): void {

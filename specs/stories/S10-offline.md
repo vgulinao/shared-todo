@@ -43,6 +43,10 @@ reload while offline: the queue and the last known list live only in memory.
 
 - **No protocol or server change.** The server already treats a reconnecting client's replayed ops
   as ordinary ops.
+- Offline is detected two ways: the socket closing (server restart, network error) and the browser's
+  own `offline` event, on which the client closes its socket at once. An open socket does not notice a
+  lost network by itself for a long time, and DevTools' offline emulation never severs it. The
+  browser's `online` event triggers an immediate reconnect instead of waiting for the backoff.
 - Client: `SyncClient` gains an optional cache, `{ load(): Cached | null; save(c: Cached): void }`,
   with `Cached = { list: ListInfo; items: Item[]; pending: Op[] }`. On construction it starts from the
   cache if present (status "connecting", list rendered). On every state change it writes the cache,
