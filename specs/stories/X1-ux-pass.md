@@ -1,6 +1,6 @@
 # X1 — UX pass
 
-Status: approved
+Status: done
 
 ## Purpose
 
