@@ -77,10 +77,12 @@ export async function buildApp(db: Db, clientDir?: string, log = false) {
       if (db.applyOp(list.id, op)) {
         // Everyone in the room, sender included: the echo is the sender's acknowledgement.
         for (const peer of room) send(peer, { type: "op", op });
-      } else if (op.kind === "createItem") {
+      } else if (op.kind === "createItem" && !db.hasItem(list.id, op.item.id)) {
+        // The id belongs to another list: refuse, or this client would show a phantom item.
         reject(op.opId, "item id already exists");
       } else {
-        // The item is already gone for everyone; acknowledge the sender, broadcast nothing.
+        // Nothing to change: a replayed create (offline queue from another tab, S10) or an op on an
+        // item that is already gone. Acknowledge the sender, broadcast nothing.
         send(socket, { type: "op", op });
       }
     });

@@ -104,8 +104,9 @@ Validation rules for item fields: titles are trimmed, non-empty, at most 500 cha
 
 An op that references a missing item (deleted by someone else meanwhile) changes nothing. The server
 acknowledges it to the sender only (so the op leaves the pending queue) and does not broadcast it; every
-other client already saw the delete. A `createItem` that changes nothing means the id already exists and
-is rejected.
+other client already saw the delete. A `createItem` that changes nothing is acknowledged the same way when
+the item already exists in this list (a replayed queue, S10) and rejected when the id belongs to another
+list (a collision that would otherwise show the sender a phantom item).
 
 ## Client algorithm
 
@@ -131,8 +132,9 @@ clients that have seen the same ops in the same order hold the same state.
 3. On `op` from an `edit` socket → validate (shape; parent rules: parent is a top-level item of the
    same list, an item is never its own parent, an item with sub-tasks cannot become one) → run the SQL →
    if a row changed, broadcast `{type:"op", op}` to every socket in the room, sender included; the
-   sender treats its own op coming back as the ack. If nothing changed: a `createItem` is rejected (id
-   already exists), anything else is echoed to the sender only.
+   sender treats its own op coming back as the ack. If nothing changed: a `createItem` whose id lives in another list is
+   rejected; anything else (a replayed create of this list's own item, an op on a missing item) is
+   echoed to the sender only.
    Every rejection is followed by a snapshot.
 4. On close: remove from the room.
 

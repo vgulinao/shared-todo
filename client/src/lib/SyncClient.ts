@@ -16,6 +16,7 @@ export type ListState = {
 const NOT_FOUND_CLOSE_CODE = 4004;
 const MIN_RETRY_MS = 500;
 const MAX_RETRY_MS = 10_000;
+const MAX_ACKED = 500;
 
 /**
  * Owns the WebSocket for one list and the list state derived from it. Implements the client
@@ -32,7 +33,10 @@ export class SyncClient {
     pending: 0,
   };
   private readonly pending = new Map<string, Op>();
-  /** Ops confirmed (or rejected) in this session; used to prune what an earlier session stored. */
+  /**
+   * Ids of this client's own ops settled in this session; used to prune what an earlier session
+   * stored. Only ops that were pending count, and the set is bounded (oldest dropped first).
+   */
   private readonly acked = new Set<string>();
   private socket: WebSocket | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -50,15 +54,21 @@ export class SyncClient {
 
     const cached = cache?.load() ?? null;
     if (cached) {
-      for (const op of cached.pending) this.pending.set(op.opId, op);
-      this.state = {
-        status: "connecting",
-        list: cached.list,
-        items: new Map(cached.items.map((item) => [item.id, item])),
-        error: null,
-        pending: this.pending.size,
-      };
-      this.onChange(this.state); // render the cached list now, not after the first connection attempt
+      try {
+        for (const op of cached.pending) this.pending.set(op.opId, op);
+        this.state = {
+          status: "connecting",
+          list: cached.list,
+          items: new Map(cached.items.map((item) => [item.id, item])),
+          error: null,
+          pending: this.pending.size,
+        };
+        this.onChange(this.state); // render the cached list now, not after the first connection attempt
+      } catch {
+        // A malformed entry (old app version, truncated write) must cost one reload, not the app.
+        this.pending.clear();
+        cache?.clear();
+      }
     }
     this.stopWatchingNetwork = this.watchNetwork();
     this.connect();
@@ -87,7 +97,10 @@ export class SyncClient {
   private watchNetwork(): () => void {
     if (typeof window === "undefined" || typeof window.addEventListener !== "function")
       return () => {};
-    const onOffline = () => this.socket?.close();
+    const onOffline = () => {
+      this.update({ status: "offline" }); // do not wait for a close event that may never come
+      this.socket?.close();
+    };
     const onOnline = () => {
       if (this.closed || this.state.status === "online") return;
       if (this.retryTimer) clearTimeout(this.retryTimer);
@@ -103,6 +116,14 @@ export class SyncClient {
   }
 
   private connect(): void {
+    // Only one live socket at a time: a previous attempt (still connecting, or dead but not yet
+    // closed) must not deliver a second snapshot or flip the status later.
+    if (this.socket) {
+      this.socket.onopen = null;
+      this.socket.onmessage = null;
+      this.socket.onclose = null;
+      this.socket.close();
+    }
     const socket = new WebSocket(this.url);
     this.socket = socket;
 
@@ -155,8 +176,12 @@ export class SyncClient {
 
   /** The op is no longer pending; the next update() carries the new count. */
   private settle(opId: string): void {
-    this.pending.delete(opId);
+    if (!this.pending.delete(opId)) return; // someone else's op: nothing of ours to settle
     this.acked.add(opId);
+    if (this.acked.size > MAX_ACKED) {
+      const oldest = this.acked.values().next().value;
+      if (oldest !== undefined) this.acked.delete(oldest);
+    }
   }
 
   /** One op applied to items, plus the list title for `renameList`, which `apply` does not cover. */

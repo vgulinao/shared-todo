@@ -1,4 +1,4 @@
-import type { Op } from "../../../shared/protocol.ts";
+import { parseClientMessage, parseItem, type Op } from "../../../shared/protocol.ts";
 import type { Item, ListInfo } from "../../../shared/types.ts";
 
 /** What the browser keeps per list so a reload while offline loses nothing (spec S10). */
@@ -29,8 +29,7 @@ export function localStorageCache(token: string): ListCache {
   const read = (): Cached | null => {
     try {
       const raw = localStorage.getItem(key);
-      const value: unknown = raw ? JSON.parse(raw) : null;
-      return isCached(value) ? value : null;
+      return parseCached(raw ? JSON.parse(raw) : null);
     } catch {
       return null;
     }
@@ -56,14 +55,34 @@ export function localStorageCache(token: string): ListCache {
   };
 }
 
-/** Shape check only; the contents came from this browser, not from a stranger. */
-function isCached(v: unknown): v is Cached {
-  if (typeof v !== "object" || v === null) return false;
+/**
+ * Validates a stored entry element by element with the same parsers the server uses. The contents
+ * came from this browser, but from a possibly older version of the app or a truncated write; anything
+ * that does not parse is dropped rather than allowed to crash the page.
+ */
+export function parseCached(v: unknown): Cached | null {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return null;
   const c = v as Record<string, unknown>;
-  return (
-    typeof c.list === "object" &&
-    c.list !== null &&
-    Array.isArray(c.items) &&
-    Array.isArray(c.pending)
-  );
+  const list = c.list as Record<string, unknown> | null;
+  if (
+    typeof list !== "object" ||
+    list === null ||
+    typeof list.id !== "string" ||
+    typeof list.title !== "string" ||
+    (list.role !== "edit" && list.role !== "view") ||
+    !(list.viewToken === null || typeof list.viewToken === "string") ||
+    !Array.isArray(c.items) ||
+    !Array.isArray(c.pending)
+  ) {
+    return null;
+  }
+  const items = c.items.map(parseItem).filter((item): item is Item => item !== null);
+  const pending = c.pending
+    .map((op) => parseClientMessage({ type: "op", op }))
+    .flatMap((result) => (result.ok ? [result.value] : []));
+  return {
+    list: { id: list.id, title: list.title, role: list.role, viewToken: list.viewToken },
+    items,
+    pending,
+  };
 }
