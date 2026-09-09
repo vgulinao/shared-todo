@@ -9,14 +9,10 @@ import {
   type Announcements,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { childrenOf } from "../../../shared/apply.ts";
 import { planMove } from "../../../shared/order.ts";
-import { sameLevelCollision } from "../lib/dnd.ts";
+import { sameLevelCollision, sameLevelKeyboardCoordinates } from "../lib/dnd.ts";
 import { totalOf } from "../../../shared/cost.ts";
 import { formatCost } from "../lib/format.ts";
 import type { Item } from "../../../shared/types.ts";
@@ -85,7 +81,7 @@ export function ListPage({ token }: { token: string }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, { coordinateGetter: sameLevelKeyboardCoordinates(state.items) }),
   );
 
   if (state.status === "not-found") return <NotFound />;
