@@ -549,17 +549,6 @@ button.cost:hover {
 
 /* UX pass (X1) */
 
-/* AC1: no hover on touch devices — row controls stay visible at reduced emphasis */
-@media (hover: none) {
-  .item-delete,
-  .drag-handle,
-  .add-subtask,
-  .add-notes,
-  .cost-empty {
-    opacity: 0.6;
-  }
-}
-
 /* AC3: narrow screens */
 @media (max-width: 480px) {
   .app {
@@ -705,5 +694,44 @@ button.cost:hover {
   }
   .spinner {
     display: none;
+  }
+}
+
+/* AC1: no hover on touch devices — row controls stay visible at reduced emphasis, and the drag handle
+   becomes a finger-sized target. This block is last on purpose: it must win over the 480 px block's
+   `padding` shorthand on .row (equal specificity, so source order decides). */
+@media (hover: none) {
+  .item-delete,
+  .drag-handle,
+  .add-subtask,
+  .add-notes,
+  .cost-empty {
+    opacity: 0.6;
+  }
+  .row {
+    padding-left: 1rem; /* above the base 0.75rem: the handle sits in from the screen edge */
+    min-height: 2.75rem; /* 44 px rows, so a full-height handle is a 44 px target */
+  }
+  .subtask-list .row {
+    min-height: 2.5rem;
+  }
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    min-width: 2.75rem;
+    min-height: 0;
+    /* Fill exactly the row's own height (its vertical padding), never more: a taller box would
+       overlap the neighbouring row's handle and grab the wrong item. Inset comes from .row padding. */
+    margin-top: -0.55rem;
+    margin-bottom: -0.55rem;
+    margin-left: 0;
+    font-size: 1.15rem;
+    opacity: 0.8;
+  }
+  .subtask-list .drag-handle {
+    margin-top: -0.3rem;
+    margin-bottom: -0.3rem;
   }
 }
