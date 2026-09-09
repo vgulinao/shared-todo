@@ -4,7 +4,6 @@ import {
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
-  closestCenter,
   useSensor,
   useSensors,
   type Announcements,
@@ -17,6 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import { childrenOf } from "../../../shared/apply.ts";
 import { planMove } from "../../../shared/order.ts";
+import { sameLevelCollision } from "../lib/dnd.ts";
 import { totalOf } from "../../../shared/cost.ts";
 import { formatCost } from "../lib/format.ts";
 import type { Item } from "../../../shared/types.ts";
@@ -184,7 +184,7 @@ export function ListPage({ token }: { token: string }) {
             (editable ? (
               <DndContext
                 sensors={sensors}
-                collisionDetection={closestCenter}
+                collisionDetection={sameLevelCollision(state.items)}
                 onDragEnd={onDragEnd}
                 accessibility={{ announcements }}
               >

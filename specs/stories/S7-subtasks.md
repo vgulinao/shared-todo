@@ -48,6 +48,11 @@ parent is the client dispatching one `updateItem { done: true }` per open sub-ta
 parent: several ordinary absolute operations, no new op kind, idempotent, converging like any other.
 Progress is computed on the client from `childrenOf(items, parentId)`.
 
+- Drag & drop with nested lists: collision detection considers only the dragged item's siblings (same
+  parent). Without that, the default nearest-centre detection reports a sub-task as the drop target
+  while a top-level item passes a group, the top-level strategy finds no such id, and the drag snaps back
+  mid-gesture (found on the pre-submission phone pass; fixed after the merge of the story).
+
 ## Out of scope
 
 Nesting deeper than one level, moving an item into or out of a parent by drag, auto-completing a
