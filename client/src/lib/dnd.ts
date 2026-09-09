@@ -35,8 +35,14 @@ export function sameLevelCollision(items: Items): CollisionDetection {
  * The library's own getter looks at every level, so on a keyboard a top-level item would step through a
  * neighbouring group's sub-tasks one row at a time; this one steps sibling to sibling.
  */
+const ARROW_KEYS = new Set(["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]);
+
 export function sameLevelKeyboardCoordinates(items: Items): KeyboardCoordinateGetter {
   return (event, { active, currentCoordinates, context }) => {
+    if (!ARROW_KEYS.has(event.code)) return undefined;
+    // An arrow key during a drag belongs to the drag even when there is nowhere to go; otherwise
+    // the browser scrolls the page under the picked-up row.
+    event.preventDefault();
     const direction = event.code === "ArrowDown" ? 1 : event.code === "ArrowUp" ? -1 : 0;
     const { collisionRect, droppableRects, droppableContainers } = context;
     if (direction === 0 || !collisionRect) return undefined;

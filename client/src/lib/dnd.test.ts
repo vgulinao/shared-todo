@@ -56,12 +56,26 @@ describe("S7 drag with sub-tasks", () => {
         droppableContainers: { getEnabled: () => containers },
       },
     } as unknown as Parameters<KeyboardCoordinateGetter>[1];
-    const down = { code: "ArrowDown" } as unknown as Parameters<KeyboardCoordinateGetter>[0];
-    const up = { code: "ArrowUp" } as unknown as Parameters<KeyboardCoordinateGetter>[0];
-    const left = { code: "ArrowLeft" } as unknown as Parameters<KeyboardCoordinateGetter>[0];
+    const key = (code: string) => {
+      const event = { code, prevented: false, preventDefault: () => void (event.prevented = true) };
+      return event as unknown as Parameters<KeyboardCoordinateGetter>[0] & { prevented: boolean };
+    };
+    const down = key("ArrowDown");
+    const up = key("ArrowUp");
+    const left = key("ArrowLeft");
+    const other = key("Tab");
 
     expect(getter(down, args)).toEqual({ x: 0, y: 120 }); // straight to b, over a1 and a2
     expect(getter(up, args)).toBeUndefined(); // nothing above a
     expect(getter(left, args)).toBeUndefined(); // a vertical list ignores left/right
+    expect(getter(other, args)).toBeUndefined();
+    // Arrow keys are consumed even when there is nowhere to go, so the page does not scroll under
+    // the picked-up row; other keys are left alone.
+    expect([down.prevented, up.prevented, left.prevented, other.prevented]).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ]);
   });
 });
