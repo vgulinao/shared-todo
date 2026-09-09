@@ -65,10 +65,11 @@ reordering done items inside the Completed section, undo.
 
 ## Test plan
 
-| AC      | Test                                                                                                      | Where  |
-| ------- | --------------------------------------------------------------------------------------------------------- | ------ |
-| AC3/AC5 | `positionBetween`: midpoint, ends, `null` when neighbours are adjacent floats; `renumbered` keeps order   | shared |
-| AC1/AC2 | `moveItem` over WS reaches the peer; reconnect snapshot returns items in the new order                    | server |
-| AC4     | Two clients move different items concurrently → identical order on both; same item → identical order      | server |
-| AC7     | `apply(moveItem)` on a done item changes position only; done items excluded from the sortable list        | shared |
-| AC6/AC8 | By hand: keyboard reorder with a screen reader announcement visible in DevTools; view link has no handles | manual |
+| AC      | Test                                                                                                                  | Where  |
+| ------- | --------------------------------------------------------------------------------------------------------------------- | ------ |
+| AC3/AC5 | `positionBetween`: midpoint, ends, `null` when neighbours are adjacent floats; `renumbered` keeps order               | shared |
+| AC1/AC2 | `moveItem` over WS reaches the peer; reconnect snapshot returns items in the new order                                | server |
+| AC4     | Two clients move different items concurrently → identical order on both; same item → identical order                  | server |
+| AC7     | `apply(moveItem)` on a done item changes position only; done items excluded from the sortable list                    | shared |
+| S7 AC9  | `client/src/lib/dnd.test.ts`: with sub-task groups on the page, only siblings are drop targets (pointer and keyboard) | client |
+| AC6/AC8 | By hand: keyboard reorder with a screen reader announcement visible in DevTools; view link has no handles             | manual |

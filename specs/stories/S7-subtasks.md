@@ -26,6 +26,10 @@ how far along the group is.
   they stay inline under their parent, so excluding them would leave gaps in the sortable list.
 - **AC7** A sub-task cannot have sub-tasks: there is no "Add sub-task" on a sub-task, and the server
   rejects an attempt (already enforced since review round 1).
+- **AC9** Dragging near or across groups never snaps back: only the dragged item's siblings (same
+  parent) are drop targets, for pointer, touch, and keyboard alike. A top-level item dragged past a
+  group glides over its sub-tasks; a keyboard ArrowDown from a group lands on the next top-level item,
+  not on the group's first sub-task. (Found on the pre-submission phone pass, after the story shipped.)
 - **AC8** Sub-tasks are collapsible per parent with a small chevron; collapsed state is component
   state, not shared or persisted. A collapsed parent still shows its progress. Ticking a parent moves
   it to the Completed section, which remounts it expanded; the collapse is not remembered across that.
@@ -40,6 +44,10 @@ how far along the group is.
   everything is done the bar is full and the text stays; no confetti.
 - Indentation: one level, about 1.75rem. Sub-task rows are slightly smaller.
 - In the view link, sub-tasks and progress are visible; no controls, as everywhere else.
+- One drag context for the page with a sortable list per level. Collision detection and the keyboard
+  coordinate getter both filter drop targets to the dragged item's siblings (`client/src/lib/dnd.ts`);
+  without that, the default nearest-centre detection reports a sub-task as the target while a top-level
+  item passes a group, the top-level strategy finds no such id, and the drag snaps back mid-gesture.
 
 ## Data / API / protocol changes
 
@@ -56,11 +64,12 @@ parent when its sub-tasks are all done, per-parent persisted collapse state, sub
 
 ## Test plan
 
-| AC           | Test                                                                                                                                                        | Where  |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| AC2          | `progressOf(items, parentId)` → `{ done, total }` for none / some / all sub-tasks done                                                                      | shared |
-| AC4          | `idsToToggle(items, id, done, isParent)`: ticking a parent → open sub-tasks then the parent; unticking a parent → the parent only; a sub-task → itself only |
-| AC1/AC3      | createItem with parentId over WS reaches the peer; snapshot lists the sub-task under its parent in position order                                           | server |
-| AC7          | createItem with a sub-task as parent → rejected (exists from round 1; referenced, not duplicated)                                                           | server |
-| AC5          | deleteItem on a parent removes children on a peer's state (engine)                                                                                          | server |
-| AC6, AC8, UI | By hand on the live URL, two windows                                                                                                                        | manual |
+| AC           | Test                                                                                                                                                              | Where  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| AC2          | `progressOf(items, parentId)` → `{ done, total }` for none / some / all sub-tasks done                                                                            | shared |
+| AC4          | `idsToToggle(items, id, done, isParent)`: ticking a parent → open sub-tasks then the parent; unticking a parent → the parent only; a sub-task → itself only       |
+| AC1/AC3      | createItem with parentId over WS reaches the peer; snapshot lists the sub-task under its parent in position order                                                 | server |
+| AC7          | createItem with a sub-task as parent → rejected (exists from round 1; referenced, not duplicated)                                                                 | server |
+| AC5          | deleteItem on a parent removes children on a peer's state (engine)                                                                                                | server |
+| AC9          | `client/src/lib/dnd.test.ts`: siblings-only filtering for top-level and sub-task drags; unknown active → no targets; keyboard ArrowDown skips a group's sub-tasks | client |
+| AC6, AC8, UI | By hand on the live URL, two windows                                                                                                                              | manual |
