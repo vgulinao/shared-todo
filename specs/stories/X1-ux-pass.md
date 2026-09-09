@@ -33,7 +33,9 @@ concept is out; this is about the product feeling finished.
 
 ## UX notes
 
-- Reduced emphasis on touch means: controls always rendered at 60 % opacity, full on press.
+- Reduced emphasis on touch means: controls always rendered at 60 % opacity, full on press. The drag
+  handle is the exception: on touch it is a 44 px target at 80 % opacity, set in from the screen edge,
+  and the touch hold tolerates 10 px of finger drift (found on a real phone before submission).
 - Recent lists live under the "New list" button as a simple list with the title, a relative time
   ("2 hours ago"), and a small "edit" / "view" tag derived from which token the browser used.
   Removing an entry does not delete anything on the server.

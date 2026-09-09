@@ -81,10 +81,11 @@ export function ListPage({ token }: { token: string }) {
   const visibleError = state.error !== dismissedError ? state.error : null;
 
   // Drag starts after a small pointer movement (so clicks still click) or a short touch hold (so the
-  // page still scrolls). Keyboard: Space to pick up, arrows to move, Space to drop.
+  // page still scrolls); a finger may drift up to 10 px during the hold. Keyboard: Space to pick up,
+  // arrows to move, Space to drop.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 10 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 

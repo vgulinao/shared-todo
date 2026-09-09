@@ -549,7 +549,8 @@ button.cost:hover {
 
 /* UX pass (X1) */
 
-/* AC1: no hover on touch devices — row controls stay visible at reduced emphasis */
+/* AC1: no hover on touch devices — row controls stay visible at reduced emphasis, and the drag
+   handle becomes a proper finger-sized target that sits a little in from the screen edge. */
 @media (hover: none) {
   .item-delete,
   .drag-handle,
@@ -557,6 +558,19 @@ button.cost:hover {
   .add-notes,
   .cost-empty {
     opacity: 0.6;
+  }
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    margin: -0.5rem 0 -0.5rem 0;
+    font-size: 1.15rem;
+    opacity: 0.8;
+  }
+  .row {
+    padding-left: 0.6rem;
   }
 }
 
